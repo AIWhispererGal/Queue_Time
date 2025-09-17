@@ -19,9 +19,8 @@ export default defineConfig({
     headers: {
       'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
       'X-Content-Type-Options': 'nosniff',
-      'Content-Security-Policy': "default-src 'self' https://*.zoom.us https://*.zoomgov.com wss://*.zoom.us wss://*.zoomgov.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.zoom.us; style-src 'self' 'unsafe-inline'",
-      'Referrer-Policy': 'strict-origin-when-cross-origin',
-      'X-Frame-Options': 'SAMEORIGIN'
+      'Referrer-Policy': 'strict-origin-when-cross-origin'
+      // Removed CSP and X-Frame-Options - they block Zoom SDK communication
     }
   }
 })

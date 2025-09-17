@@ -106,8 +106,6 @@ function App() {
       }
     } catch (error) {
       console.error('Error initializing Zoom App:', error);
-      // Show error to user for debugging
-      alert(`Zoom SDK Error: ${error.message || error}`);
 
       // For development/testing without Zoom
       setMyUserId('1'); // Simulate you as John Doe
