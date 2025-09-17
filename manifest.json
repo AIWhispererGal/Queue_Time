@@ -1,0 +1,39 @@
+{
+  "name": "Speaker Queue Manager",
+  "version": "1.0.0",
+  "description": "Manage speaker queues and track speaking time in Zoom meetings",
+  "developer": {
+    "name": "Your Company Name",
+    "website_url": "https://yourcompany.com",
+    "privacy_policy_url": "https://yourcompany.com/privacy",
+    "terms_of_use_url": "https://yourcompany.com/terms"
+  },
+  "app_type": "zoomapp",
+  "scopes": [
+    "listParticipants",
+    "getMeetingParticipants",
+    "onParticipantChange",
+    "onActiveSpeakerChange"
+  ],
+  "features": {
+    "native_sdk_version": "0.16.0",
+    "in_client": true,
+    "supports_breakout_rooms": false
+  },
+  "home_url": "https://localhost:5173",
+  "redirect_urls": [
+    "https://localhost:5173/auth"
+  ],
+  "context": {
+    "in_meeting": true,
+    "in_webinar": false,
+    "in_chat": false,
+    "in_phone": false
+  },
+  "size_constraints": {
+    "min_width": 320,
+    "max_width": 1000,
+    "min_height": 400,
+    "max_height": 800
+  }
+}

@@ -1,0 +1,407 @@
+Core Features (Streamlined)
+Speaker Queue Management
+
+Click participant name to add to queue
+Visual queue display with order
+Current speaker indicator
+Drag & drop reordering
+Remove from queue option
+
+Time Management
+
+Single configurable time limit for all speakers
+Countdown timer for current speaker
+Visual/audio warnings as time expires
+Cumulative speaking time tracking per person
+Speaking instance counter
+
+Zoom App Development Requirements
+Based on Zoom's App SDK documentation, here are the key technical requirements:
+Frontend Framework
+
+Zoom apps run in an embedded browser (Chromium-based)
+Can use any modern web framework (React, Vue, Vanilla JS)
+Must be responsive (min 320px, max 1000px width)
+Runs in an iframe within Zoom client
+
+SDK Setup
+javascript// Required initialization
+import zoomSdk from "@zoom/appssdk";
+
+async function initializeApp() {
+  try {
+    const configResponse = await zoomSdk.config({
+      capabilities: [
+        "listParticipants",
+        "getMeetingParticipants",
+        "onParticipantChange",
+        "onActiveSpeakerChange"
+      ],
+    });
+    console.log("App configured", configResponse);
+  } catch (error) {
+    console.error("Error configuring app", error);
+  }
+}
+Revised Development Phases
+Phase 1: MVP
+
+Basic queue (add/remove/clear)
+Countdown timer with start/stop/reset
+Track total speaking time per person
+Track number of times spoken
+
+Phase 2: Enhanced Features
+
+Drag-and-drop queue reordering
+Audio/visual alerts (30s, 10s warnings)
+Real-time statistics dashboard
+Export meeting stats to CSV
+
+Phase 3: Advanced Features
+
+Meeting analytics with graphs
+Speaking equity recommendations
+Auto-advance to next speaker option
+Keyboard shortcuts
+
+Project Structure
+zoom-speaker-queue/
+├── src/
+│   ├── components/
+│   │   ├── ParticipantList.js
+│   │   ├── SpeakerQueue.js
+│   │   ├── Timer.js
+│   │   ├── Statistics.js
+│   │   └── Settings.js
+│   ├── hooks/
+│   │   ├── useZoomParticipants.js
+│   │   ├── useTimer.js
+│   │   └── useQueue.js
+│   ├── utils/
+│   │   ├── timeFormatting.js
+│   │   └── exportData.js
+│   ├── App.js
+│   └── index.js
+├── public/
+│   └── index.html
+├── package.json
+└── manifest.json
+Let's Start Building!
+Here's the initial setup code:
+1. package.json
+json{
+  "name": "zoom-speaker-queue",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "@zoom/appssdk": "^0.16.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-beautiful-dnd": "^13.1.1"
+  },
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build"
+  }
+}
+2. Main App Component (App.js)
+javascriptimport React, { useState, useEffect } from 'react';
+import zoomSdk from '@zoom/appssdk';
+import ParticipantList from './components/ParticipantList';
+import SpeakerQueue from './components/SpeakerQueue';
+import Timer from './components/Timer';
+import Statistics from './components/Statistics';
+import './App.css';
+
+function App() {
+  const [participants, setParticipants] = useState([]);
+  const [queue, setQueue] = useState([]);
+  const [currentSpeaker, setCurrentSpeaker] = useState(null);
+  const [speakerStats, setSpeakerStats] = useState({});
+  const [timeLimit, setTimeLimit] = useState(120); // 2 minutes default
+
+  useEffect(() => {
+    initializeZoomApp();
+  }, []);
+
+  const initializeZoomApp = async () => {
+    try {
+      await zoomSdk.config({
+        capabilities: ['listParticipants', 'onParticipantChange'],
+      });
+      
+      // Get initial participants
+      const { participants } = await zoomSdk.listParticipants();
+      setParticipants(participants);
+      
+      // Listen for participant changes
+      zoomSdk.onParticipantChange((event) => {
+        setParticipants(event.participants);
+      });
+    } catch (error) {
+      console.error('Error initializing Zoom App:', error);
+    }
+  };
+
+  const addToQueue = (participant) => {
+    if (!queue.find(p => p.userId === participant.userId)) {
+      setQueue([...queue, participant]);
+    }
+  };
+
+  const removeFromQueue = (userId) => {
+    setQueue(queue.filter(p => p.userId !== userId));
+  };
+
+  const startSpeaking = () => {
+    if (queue.length > 0) {
+      const speaker = queue[0];
+      setCurrentSpeaker(speaker);
+      setQueue(queue.slice(1));
+      
+      // Initialize stats if needed
+      if (!speakerStats[speaker.userId]) {
+        setSpeakerStats({
+          ...speakerStats,
+          [speaker.userId]: {
+            totalTime: 0,
+            instances: 0
+          }
+        });
+      }
+    }
+  };
+
+  const onTimerComplete = (timeSpoken) => {
+    if (currentSpeaker) {
+      setSpeakerStats({
+        ...speakerStats,
+        [currentSpeaker.userId]: {
+          totalTime: (speakerStats[currentSpeaker.userId]?.totalTime || 0) + timeSpoken,
+          instances: (speakerStats[currentSpeaker.userId]?.instances || 0) + 1
+        }
+      });
+      setCurrentSpeaker(null);
+    }
+  };
+
+  return (
+    <div className="app">
+      <h1>Speaker Queue Manager</h1>
+      
+      <div className="main-layout">
+        <ParticipantList 
+          participants={participants}
+          onAddToQueue={addToQueue}
+          speakerStats={speakerStats}
+        />
+        
+        <div className="center-panel">
+          <Timer 
+            isActive={!!currentSpeaker}
+            timeLimit={timeLimit}
+            currentSpeaker={currentSpeaker}
+            onComplete={onTimerComplete}
+          />
+          
+          <SpeakerQueue 
+            queue={queue}
+            onRemove={removeFromQueue}
+            onStartSpeaking={startSpeaking}
+            currentSpeaker={currentSpeaker}
+          />
+        </div>
+        
+        <Statistics 
+          speakerStats={speakerStats}
+          participants={participants}
+        />
+      </div>
+    </div>
+  );
+}
+
+export default App;
+3. Timer Component (components/Timer.js)
+javascriptimport React, { useState, useEffect, useRef } from 'react';
+
+function Timer({ isActive, timeLimit, currentSpeaker, onComplete }) {
+  const [timeRemaining, setTimeRemaining] = useState(timeLimit);
+  const [totalTimeSpoken, setTotalTimeSpoken] = useState(0);
+  const intervalRef = useRef(null);
+
+  useEffect(() => {
+    if (isActive) {
+      setTimeRemaining(timeLimit);
+      setTotalTimeSpoken(0);
+      
+      intervalRef.current = setInterval(() => {
+        setTimeRemaining(prev => {
+          if (prev <= 1) {
+            handleTimerEnd();
+            return 0;
+          }
+          return prev - 1;
+        });
+        setTotalTimeSpoken(prev => prev + 1);
+      }, 1000);
+    } else {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    }
+    
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, [isActive, timeLimit]);
+
+  const handleTimerEnd = () => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+    }
+    onComplete(totalTimeSpoken);
+    // Play sound alert
+    playAlert();
+  };
+
+  const playAlert = () => {
+    const audio = new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=');
+    audio.play().catch(e => console.log('Could not play alert sound'));
+  };
+
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const getTimerColor = () => {
+    const percentage = (timeRemaining / timeLimit) * 100;
+    if (percentage > 50) return '#4CAF50';
+    if (percentage > 20) return '#FFC107';
+    return '#F44336';
+  };
+
+  return (
+    <div className="timer-container">
+      {currentSpeaker && (
+        <h2>Current Speaker: {currentSpeaker.displayName}</h2>
+      )}
+      
+      <div className="timer-display" style={{ color: getTimerColor() }}>
+        {formatTime(timeRemaining)}
+      </div>
+      
+      <div className="timer-progress">
+        <div 
+          className="timer-progress-bar"
+          style={{ 
+            width: `${(timeRemaining / timeLimit) * 100}%`,
+            backgroundColor: getTimerColor()
+          }}
+        />
+      </div>
+      
+      {isActive && (
+        <button onClick={() => onComplete(totalTimeSpoken)}>
+          End Turn
+        </button>
+      )}
+    </div>
+  );
+}
+
+export default Timer;
+
+
+
+Setup Instructions1. Register Your Zoom App
+Go to marketplace.zoom.us
+Sign in and click "Develop" → "Build App"
+Choose "Zoom Apps" as the app type
+Fill in basic information:
+
+App name: "Speaker Queue Manager"
+Short description: "Manage speaker queues and track speaking time"
+
+
+2. Configure App SettingsIn your Zoom App configuration:Basic Information:
+
+App name: Speaker Queue Manager
+Short description: Track and manage speaker queues with timing
+App Credentials:
+
+Save your Client ID and Client Secret
+Scopes Required:
+
+listParticipants - Get meeting participants
+getMeetingParticipants - Real-time participant info
+onParticipantChange - Listen to participant changes
+onActiveSpeakerChange - Track active speaker (optional)
+App Settings:
+
+Home URL: Your app URL (for development: https://localhost:3000)
+Redirect URL: https://localhost:3000/auth
+3. Install Dependenciesbashnpm install4. Environment SetupCreate .env file:
+REACT_APP_ZOOM_CLIENT_ID=your_client_id_here
+REACT_APP_ZOOM_CLIENT_SECRET=your_client_secret_here5. Run Development Serverbashnpm start6. Test in Zoom
+In Zoom client settings, enable "Zoom Apps"
+During a meeting, click "Apps" in toolbar
+Find and add your development app
+The app will open in the Zoom side panel
+Core FunctionalitySpeaker Queue Management
+
+Add to Queue: Click any participant's name to add them
+Remove from Queue: Click X next to queued speaker
+Reorder: Drag and drop to reorder queue
+Start Speaking: Click "Start Next Speaker" to begin timer
+Timer Features
+
+Configurable time limit (default: 2 minutes)
+Color-coded warnings:
+
+Green: >50% time remaining
+Yellow: 20-50% time remaining
+Red: <20% time remaining
+
+
+Audio alerts at 30s and 10s
+Manual "End Turn" button
+Statistics Tracking
+
+Total speaking time per participant
+Number of times each person spoke
+Average speaking time
+Meeting participation percentage
+Export to CSV for records
+Development NotesZoom SDK IntegrationThe app uses @zoom/appssdk for Zoom integration:javascriptimport zoomSdk from '@zoom/appssdk';
+
+// Initialize
+await zoomSdk.config({
+  capabilities: ['listParticipants', 'onParticipantChange'],
+});
+
+// Get participants
+const { participants } = await zoomSdk.listParticipants();
+
+// Listen for changes
+zoomSdk.onParticipantChange((event) => {
+  // Handle participant updates
+});State ManagementThe app uses React hooks for state:
+
+participants: Current meeting participants
+queue: Ordered list of speakers waiting
+currentSpeaker: Active speaker object
+speakerStats: Cumulative statistics per participant
+timeLimit: Configurable speaking time limit
+Edge Cases Handled
+
+Speaker leaves meeting while in queue (auto-removed)
+Host disconnection/reconnection (state persisted)
+Time extensions for current speaker (manual control)
+Queue modifications during active speaking
+

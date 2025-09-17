@@ -1,0 +1,13 @@
+.video-overlay-container {
+  position: relative;
+  width: 100%;
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+.video-canvas {
+  width: 100%;
+  height: auto;
+  background: #000;
+  border-radius: 0.5rem;
+}

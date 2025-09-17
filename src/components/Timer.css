@@ -1,0 +1,99 @@
+.timer-container {
+  background: white;
+  border-radius: 0.25rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  padding: 1rem;
+  text-align: center;
+}
+
+.current-speaker {
+  margin-bottom: 0.75rem;
+}
+
+.speaker-name {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 0.25rem;
+}
+
+.speaker-quick-stats {
+  font-size: 0.75rem;
+  color: #666;
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+}
+
+.timer-display {
+  font-size: 3rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  margin: 0.5rem 0;
+  transition: color 0.3s ease;
+}
+
+.timer-progress {
+  width: 100%;
+  height: 6px;
+  background: #e0e0e0;
+  border-radius: 3px;
+  overflow: hidden;
+  margin: 0.5rem 0 1rem 0;
+}
+
+.timer-progress-bar {
+  height: 100%;
+  transition: width 1s linear, background-color 0.3s ease;
+}
+
+.timer-button {
+  padding: 0.5rem 1.5rem;
+  font-size: 0.875rem;
+}
+
+.end-turn {
+  background: linear-gradient(135deg, #f44336 0%, #e91e63 100%);
+}
+
+.timer-settings {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.timer-settings label {
+  font-size: 0.75rem;
+  color: #666;
+}
+
+.timer-settings input {
+  width: 60px;
+  padding: 0.25rem;
+  border: 1px solid #ddd;
+  border-radius: 0.25rem;
+  font-size: 0.875rem;
+}
+
+.timer-settings span {
+  font-size: 0.75rem;
+  color: #666;
+}
+
+.timer-warning {
+  margin-top: 0.5rem;
+  padding: 0.25rem 0.5rem;
+  background: #fff3e0;
+  color: #f57c00;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.7; }
+  100% { opacity: 1; }
+}
