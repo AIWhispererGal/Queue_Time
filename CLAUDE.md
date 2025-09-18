@@ -55,11 +55,40 @@ The app gets **"No Permission for this API [code:80004, reason:app_not_support]"
    - Find your app → Open
 3. The SDK will connect and show real participants
 
-## 🚀 Next Session Tasks
-1. Test inside Zoom client (not browser)
-2. Debug any remaining SDK issues
-3. Video overlay is not possible with Zoom Apps (only Video SDK)
-4. Consider using floating timer or screen share instead
+## 🚀 Next Session Tasks - Video Overlay Fix
+
+### 🔍 DISCOVERED ISSUE: Wrong SDK Methods!
+**We have Video SDK code but we're using Apps SDK!** The Detective found:
+- `/src/hooks/useVideoOverlay.js` uses `startVideoProcessor`/`stopVideoProcessor` (Video SDK only)
+- We're importing `@zoom/appssdk` which doesn't have these methods
+- Need to use `setVirtualForeground` from Apps SDK instead
+
+### 📋 TODO for Video Overlay:
+1. **Replace Video SDK methods with Apps SDK `setVirtualForeground`**
+   - Remove `startVideoProcessor`/`stopVideoProcessor` calls
+   - Implement `zoomSdk.setVirtualForeground()` instead
+
+2. **Convert canvas to image format**
+   ```javascript
+   // Example approach:
+   canvas.toBlob(blob => {
+     const reader = new FileReader();
+     reader.onload = () => {
+       zoomSdk.setVirtualForeground({
+         imageData: reader.result
+       });
+     };
+     reader.readAsDataURL(blob);
+   });
+   ```
+
+3. **Add capability for `setVirtualForeground`**
+   - Add to capabilities array in App.jsx line 56-72
+   - Check if API is available before using
+
+4. **Keep existing canvas rendering**
+   - Timer drawing code in useVideoOverlay.js is good
+   - Just need to feed it to correct API
 
 ## 💡 Key Learnings
 - Zoom Apps run in iframe inside Zoom
