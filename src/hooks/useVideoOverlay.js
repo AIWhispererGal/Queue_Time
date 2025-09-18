@@ -233,103 +233,20 @@ export function useVideoOverlay(zoomSdk, currentSpeaker, timeRemaining, timeLimi
         try {
           const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
 
-          // If we already know which method works, use it directly
-          if (successfulMethodRef.current) {
-            try {
-              let result;
-              switch(successfulMethodRef.current) {
-                case 'uint8array':
-                  result = await zoomSdk.drawImage({
-                    x: 0, y: 0,
-                    imageData: imageData.data,
-                    width: canvas.width,
-                    height: canvas.height,
-                    zIndex: 3
-                  });
-                  break;
-                case 'structured':
-                  result = await zoomSdk.drawImage({
-                    x: 0, y: 0,
-                    imageData: { data: imageData.data, width: canvas.width, height: canvas.height },
-                    zIndex: 3
-                  });
-                  break;
-                case 'base64':
-                  const base64 = canvas.toDataURL('image/png');
-                  result = await zoomSdk.drawImage({
-                    x: 0, y: 0,
-                    imageData: base64,
-                    zIndex: 3
-                  });
-                  break;
-                case 'base64clean':
-                  const base64Full = canvas.toDataURL('image/png');
-                  const base64Clean = base64Full.replace(/^data:image\/\w+;base64,/, '');
-                  result = await zoomSdk.drawImage({
-                    x: 0, y: 0,
-                    imageData: base64Clean,
-                    zIndex: 3
-                  });
-                  break;
-                case 'imagedata':
-                  result = await zoomSdk.drawImage({
-                    x: 0, y: 0,
-                    imageData: imageData,
-                    zIndex: 3
-                  });
-                  break;
-              }
-              if (setDebugMessage) setDebugMessage(`Timer: ${Math.floor(timeRemainingRef.current / 60)}:${(timeRemainingRef.current % 60).toString().padStart(2, '0')} (${successfulMethodRef.current})`);
-              return; // Success, exit early
-            } catch (e) {
-              // Method stopped working, clear it
-              successfulMethodRef.current = null;
-              console.log('Previously successful method failed:', e);
-            }
-          }
-
-          // Try all methods to find one that works
+          // Skip straight to methods that work: Start with Method 3 (most reliable)
+          // Method 3: Try with the full ImageData object (this one seems most stable)
           try {
-            // First attempt: Pass just the Uint8ClampedArray data with width and height
-            if (setDebugMessage) setDebugMessage(`Trying Method 1: Uint8ClampedArray...`);
             const result = await zoomSdk.drawImage({
               x: 0,
               y: 0,
-              imageData: imageData.data, // Just the Uint8ClampedArray, not the whole ImageData object
-              width: canvas.width,
-              height: canvas.height,
+              imageData: imageData, // Full ImageData object
               zIndex: 3
             });
-            console.log('Overlay drawn successfully with Uint8ClampedArray:', result);
-            successfulMethodRef.current = 'uint8array';
-            if (setDebugMessage) setDebugMessage(`✅ SUCCESS (data array): ${currentSpeaker.displayName} - ${currentSecond}s`);
+            console.log('✅ Method 3 WORKS - Full ImageData object');
+            if (setDebugMessage) setDebugMessage(`Timer: ${Math.floor(timeRemainingRef.current / 60)}:${(timeRemainingRef.current % 60).toString().padStart(2, '0')}`);
             return; // Success, exit early
-          } catch (error1) {
-            console.log('Method 1 failed (Uint8ClampedArray):', error1.message);
-            if (setDebugMessage) setDebugMessage(`❌ Method 1 failed: ${error1.message || 'Unknown error'}`);
-          }
-
-          // Method 1b: Try with structured imageData object
-          try {
-            if (setDebugMessage) setDebugMessage(`Trying Method 1b: Structured object...`);
-            const structuredImageData = {
-              data: imageData.data,
-              width: canvas.width,
-              height: canvas.height
-            };
-            const result = await zoomSdk.drawImage({
-              x: 0,
-              y: 0,
-              imageData: structuredImageData,
-              zIndex: 3
-            });
-            console.log('Overlay drawn successfully with structured ImageData:', result);
-            successfulMethodRef.current = 'structured';
-            if (setDebugMessage) setDebugMessage(`✅ SUCCESS (structured): ${currentSpeaker.displayName} - ${currentSecond}s`);
-            return; // Success, exit early
-          } catch (error1b) {
-            console.log('Method 1b failed (structured ImageData):', error1b.message);
-            if (setDebugMessage) setDebugMessage(`❌ Method 1b failed: ${error1b.message || 'Unknown error'}`);
+          } catch (error3) {
+            console.log('Method 3 failed, trying base64 methods:', error3.message);
           }
 
           // Method 2: Try with base64 encoded image (with prefix)
@@ -342,9 +259,9 @@ export function useVideoOverlay(zoomSdk, currentSpeaker, timeRemaining, timeLimi
               imageData: base64Image,
               zIndex: 3
             });
-            console.log('Overlay drawn successfully with base64:', result);
+            console.log('✅ Method 2 WORKS - Base64 with prefix');
             successfulMethodRef.current = 'base64';
-            if (setDebugMessage) setDebugMessage(`✅ SUCCESS (base64): ${currentSpeaker.displayName} - ${currentSecond}s`);
+            if (setDebugMessage) setDebugMessage(`✅ Method 2 (Base64 w/ prefix) WORKS!`);
             return; // Success, exit early
           } catch (error2) {
             console.log('Method 2 failed (base64 with prefix):', error2.message);
@@ -362,66 +279,18 @@ export function useVideoOverlay(zoomSdk, currentSpeaker, timeRemaining, timeLimi
               imageData: base64Data,
               zIndex: 3
             });
-            console.log('Overlay drawn successfully with base64 (no prefix):', result);
+            console.log('✅ Method 2b WORKS - Base64 without prefix');
             successfulMethodRef.current = 'base64clean';
-            if (setDebugMessage) setDebugMessage(`✅ SUCCESS (base64 clean): ${currentSpeaker.displayName} - ${currentSecond}s`);
+            if (setDebugMessage) setDebugMessage(`✅ Method 2b (Base64 no prefix) WORKS!`);
             return; // Success, exit early
           } catch (error2b) {
             console.log('Method 2b failed (base64 without prefix):', error2b.message);
             if (setDebugMessage) setDebugMessage(`❌ Method 2b failed: ${error2b.message || 'Unknown error'}`);
           }
 
-          // Method 3: Try with the full ImageData object (original method)
-          try {
-            if (setDebugMessage) setDebugMessage(`Trying Method 3: Full ImageData object...`);
-            const result = await zoomSdk.drawImage({
-              x: 0,
-              y: 0,
-              imageData: imageData, // Full ImageData object
-              zIndex: 3
-            });
-            console.log('Overlay drawn successfully with ImageData object:', result);
-            successfulMethodRef.current = 'imagedata';
-            if (setDebugMessage) setDebugMessage(`✅ SUCCESS (ImageData): ${currentSpeaker.displayName} - ${currentSecond}s`);
-            return; // Success, exit early
-          } catch (error3) {
-            console.log('Method 3 failed (ImageData object):', error3.message);
-            if (setDebugMessage) setDebugMessage(`❌ Method 3 failed: ${error3.message || 'Unknown error'}`);
-          }
-
-          // Method 4: Try creating a blob and converting to base64
-          await new Promise((resolve) => {
-            canvas.toBlob(async (blob) => {
-              if (!blob) {
-                console.log('Failed to create blob from canvas');
-                resolve();
-                return;
-              }
-
-              const reader = new FileReader();
-              reader.onload = async () => {
-                try {
-                  if (setDebugMessage) setDebugMessage(`Trying Method 4: Blob base64...`);
-                  const result = await zoomSdk.drawImage({
-                    x: 0,
-                    y: 0,
-                    imageData: reader.result, // base64 from blob
-                    zIndex: 3
-                  });
-                  console.log('Overlay drawn successfully with blob base64:', result);
-                  if (setDebugMessage) setDebugMessage(`✅ SUCCESS (blob): ${currentSpeaker.displayName} - ${currentSecond}s`);
-                } catch (error4) {
-                  console.log('Method 4 failed (blob base64):', error4.message);
-                  if (setDebugMessage) setDebugMessage(`❌ Method 4 failed: ${error4.message || 'Unknown error'}`);
-                }
-                resolve();
-              };
-              reader.readAsDataURL(blob);
-            }, 'image/png');
-          });
-
-          // If all methods failed, report the error
-          if (setDebugMessage) setDebugMessage(`All draw methods failed - check console`);
+          // Removed Methods 1, 1b, and 4 since they never work
+          // If all working methods failed, report the error
+          if (setDebugMessage) setDebugMessage(`All methods failed - check console`);
 
         } catch (error) {
           console.error('drawImage failed completely:', error);

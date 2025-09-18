@@ -1,7 +1,7 @@
 # Queue Time - Zoom App Development Guide
 
 ## 🎉 Current Status
-**The app is 95% complete!** UI works perfectly, just needs final SDK connection.
+**The app is WORKING!** UI works perfectly AND video overlay is functional!
 
 ## ✅ What's Working
 - Full queue management UI
@@ -11,39 +11,44 @@
 - Mock data fallback for testing
 - ngrok tunnel with HTTPS working
 
-## 🔧 Video Overlay Status - Testing Multiple Formats
-**UPDATE**: Implemented comprehensive `drawImage` testing with multiple formats:
+## 🎊 Video Overlay WORKING!
+**The overlay displays on video during meetings!**
 
-### What We've Tried:
-1. **Uint8ClampedArray** - Pass just `imageData.data` with width/height
-2. **Structured Object** - `{data, width, height}` format
-3. **Base64 with prefix** - Full data URL from `canvas.toDataURL()`
-4. **Base64 without prefix** - Stripped "data:image/png;base64,"
-5. **Full ImageData object** - Original canvas ImageData
-6. **Blob to base64** - Via FileReader
+### What Works:
+- ✅ **Method 2 or 2b** (Base64 format) successfully draws overlay
+- ✅ Timer updates smoothly once per second
+- ✅ Smart format caching for performance
+- ✅ Rendering context activates properly
 
-### Key Findings:
-- ✅ Rendering context activates successfully
-- ✅ Canvas drawing works perfectly
-- ❌ All `drawImage` formats return validation errors
-- Added comprehensive error logging to identify exact format needed
+### 🔧 Next Improvements Needed:
+1. **Optimize format detection** - Stop trying all 6 methods when we know 2/2b works
+2. **Fix overlay clearing** - Not properly clearing when speaker finishes
+3. **Enhance cosmetics** - Make the overlay look more professional
 
-**Possible Issues:**
-1. **Marketplace Permissions** - May need specific app permissions enabled
-2. **Account Limitations** - Developer accounts might have restrictions
-3. **Platform Specific** - Known issues on Windows vs Mac
-4. **API Version** - SDK v0.16.0 might have specific requirements
+### Technical Details:
+- Using Zoom Apps SDK Layers API
+- `drawImage` with base64 encoded canvas data
+- Full ImageData object also works on some systems
+- `clearImage` API may not be available (fallback needed)
 
-**Key Discoveries:**
-- `setVirtualForeground` = backgrounds BEHIND users (not overlays!)
-- `drawImage` with Layers API = true overlays IN FRONT
-- Added ALL Layers API capabilities to App.jsx
-- Forum posts suggest format varies by platform/version
+## 🚨 CRITICAL: Ngrok Restart Required!
+**Every time you restart development:**
+1. **Kill old ngrok**: `pkill -f ngrok`
+2. **Start fresh tunnel**: `npx ngrok http 5173`
+3. **Get new URL**: Check terminal for `https://xxxxx.ngrok-free.app`
+4. **Update Zoom Marketplace**:
+   - Go to your app settings
+   - Update "Home URL" with new ngrok address
+   - Save changes
+5. **Test in Zoom** (not browser!)
+
+**White screen = Wrong/old ngrok URL!**
 
 ## 🛠 Quick Commands
 - `k.bat` - Kill dev server (Windows)
 - `s.bat` - Start dev server (Windows)
-- **MUST USE PORT 5173** - hardcoded in Zoom Marketplace & ngrok
+- `npm run dev` - Start server (port 5173 required!)
+- `npx ngrok http 5173` - Start ngrok tunnel
 
 ## Development Notes:
    - Only works for developer account
