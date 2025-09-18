@@ -19,10 +19,11 @@ function App() {
   const [showFloatingTimer, setShowFloatingTimer] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState(120);
   const [myUserId, setMyUserId] = useState(null);
-  const [zoomStream, setZoomStream] = useState(null);
+  const [zoomSdkInstance, setZoomSdkInstance] = useState(null);
   const [videoOverlayEnabled, setVideoOverlayEnabled] = useState(true);
   const [sdkError, setSdkError] = useState(null);
   const [debugInfo, setDebugInfo] = useState('Waiting to initialize...');
+  const [overlayDebug, setOverlayDebug] = useState('Overlay not active');
 
   useEffect(() => {
     // Inject critical styles for Zoom iframe compatibility
@@ -85,7 +86,15 @@ function App() {
           'onExpandApp',
           'onConnect',
           'onMessage',
-          'onReaction'
+          'onReaction',
+          'runRenderingContext',
+          'closeRenderingContext',
+          'drawImage',
+          'clearImage',
+          'drawParticipant',
+          'drawWebView',
+          'clearParticipant',
+          'clearWebView'
         ],
         version: '0.16.0'
       });
@@ -216,6 +225,9 @@ function App() {
         setDebugInfo('Event mode active - participants will appear as they join/leave');
       }
 
+      // Store the SDK instance for video overlay
+      setZoomSdkInstance(zoomSdk);
+
       // Success - we're connected even if we don't have participants yet
       console.log('✅ Zoom SDK initialized successfully in event mode');
 
@@ -302,13 +314,14 @@ function App() {
   };
 
   // Use video overlay hook when enabled
-  useVideoOverlay(
-    videoOverlayEnabled ? zoomStream : null,
+  const overlayStatus = useVideoOverlay(
+    videoOverlayEnabled ? zoomSdkInstance : null,
     currentSpeaker,
     timeRemaining,
     timeLimit,
     myUserId,
-    queue
+    queue,
+    setOverlayDebug
   );
 
   return (
@@ -405,8 +418,16 @@ function App() {
       )}
 
       {/* Debug Info */}
-      <div className="debug-panel">
+      <div className="debug-panel" style={{ maxHeight: '200px', overflowY: 'auto' }}>
         <div>🔍 DEBUG INFO:</div>
+        <div style={{ backgroundColor: videoOverlayEnabled && currentSpeaker ? '#2e7d32' : '#333', padding: '2px 5px', marginBottom: '2px' }}>
+          Hook Active: {videoOverlayEnabled && currentSpeaker ? '✅ YES' : '❌ NO'}
+        </div>
+        <div>Overlay Enabled: {videoOverlayEnabled ? '✅ YES' : '❌ NO'}</div>
+        <div>Current Speaker: {currentSpeaker ? `🎤 ${currentSpeaker.displayName}` : '❌ None'}</div>
+        <div>Time Remaining: {timeRemaining}s</div>
+        <div>Rendering Context: {overlayStatus?.renderingContextActive ? '✅ ACTIVE' : '❌ INACTIVE'}</div>
+        <div>Video Overlay: {overlayDebug || 'Not initialized'}</div>
         <div>SDK Connected: {isZoomConnected ? '✅ YES' : '❌ NO'}</div>
         <div>Participants: {participants.length}</div>
         <div>Status: {debugInfo}</div>

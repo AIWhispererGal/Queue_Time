@@ -11,31 +11,41 @@
 - Mock data fallback for testing
 - ngrok tunnel with HTTPS working
 
-## 🔧 Current Issue - Permission Error Despite Correct Scopes! 🎯
-The app gets **"No Permission for this API [code:80004, reason:app_not_support]"** error when trying to access participant data, even though:
-- SDK connects successfully (✅ YES shown)
-- All required scopes are configured in marketplace
-- User is the meeting host
-- App is explicitly added to the meeting
+## 🔧 Video Overlay Status - Testing Multiple Formats
+**UPDATE**: Implemented comprehensive `drawImage` testing with multiple formats:
 
-### 📌 THE PROBLEM:
-**Zoom Apps using client-side SDK still need API endpoints configured in the marketplace, even if you're not using server-side APIs.** The error "app_not_support" means the app configuration doesn't support the `getMeetingParticipants` API - it's not about OAuth scopes or user permissions. Additionally, the Home URL is missing required OWASP security headers (Strict-Transport-Security, X-Content-Type-Options, Content-Security-Policy, Referrer-Policy) which may prevent proper app validation.
+### What We've Tried:
+1. **Uint8ClampedArray** - Pass just `imageData.data` with width/height
+2. **Structured Object** - `{data, width, height}` format
+3. **Base64 with prefix** - Full data URL from `canvas.toDataURL()`
+4. **Base64 without prefix** - Stripped "data:image/png;base64,"
+5. **Full ImageData object** - Original canvas ImageData
+6. **Blob to base64** - Via FileReader
 
-### 🔧 Potential Solutions:
-1. **Add API endpoints in Zoom Marketplace** (even dummy ones)
-   - Go to API section
-   - Add endpoint like `/api/participants`
-   - This might unlock client-side SDK permissions
+### Key Findings:
+- ✅ Rendering context activates successfully
+- ✅ Canvas drawing works perfectly
+- ❌ All `drawImage` formats return validation errors
+- Added comprehensive error logging to identify exact format needed
 
-2. **Fix OWASP security headers** (already added to vite.config.js)
-   - All 4 required headers now included with proper CSP
+**Possible Issues:**
+1. **Marketplace Permissions** - May need specific app permissions enabled
+2. **Account Limitations** - Developer accounts might have restrictions
+3. **Platform Specific** - Known issues on Windows vs Mac
+4. **API Version** - SDK v0.16.0 might have specific requirements
 
-3. **Alternative approach if permissions can't be fixed:**
-   - Use `onParticipantChange` event to build participant list
-   - Use simpler APIs that don't require special permissions
-   - Accept manual participant entry as primary method
+**Key Discoveries:**
+- `setVirtualForeground` = backgrounds BEHIND users (not overlays!)
+- `drawImage` with Layers API = true overlays IN FRONT
+- Added ALL Layers API capabilities to App.jsx
+- Forum posts suggest format varies by platform/version
 
-2. **Development Mode Limitations**:
+## 🛠 Quick Commands
+- `k.bat` - Kill dev server (Windows)
+- `s.bat` - Start dev server (Windows)
+- **MUST USE PORT 5173** - hardcoded in Zoom Marketplace & ngrok
+
+## Development Notes:
    - Only works for developer account
    - Shows "Dev Mode" badge (by design!)
    - May fall back to mock data
