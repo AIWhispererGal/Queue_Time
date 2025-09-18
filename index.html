@@ -4,7 +4,9 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Vite + React</title>
+    <!-- Allow blob: URLs for Zoom SDK worker -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' https://*.zoom.us https://*.ngrok-free.app https://*.ngrok.io; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://*.zoom.us; worker-src 'self' blob:; connect-src 'self' https://*.zoom.us wss://*.zoom.us https://*.ngrok-free.app https://*.ngrok.io; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; frame-ancestors https://*.zoom.us;">
+    <title>Queue Time - Zoom App</title>
   </head>
   <body>
     <div id="root"></div>

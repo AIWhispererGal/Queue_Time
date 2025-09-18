@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import './ParticipantList.css';
 
 function ParticipantList({ participants, onAddToQueue, speakerStats, currentSpeaker, queue }) {
+  const [showManualAdd, setShowManualAdd] = useState(false);
+  const [manualName, setManualName] = useState('');
   const formatTime = (seconds) => {
     if (!seconds) return '0:00';
     const mins = Math.floor(seconds / 60);
@@ -23,9 +25,61 @@ function ParticipantList({ participants, onAddToQueue, speakerStats, currentSpea
     return 'available';
   };
 
+  const handleManualAdd = () => {
+    if (manualName.trim()) {
+      const manualParticipant = {
+        userId: `manual-${Date.now()}`,
+        displayName: manualName.trim(),
+        avatar: null,
+        role: 'participant',
+        isManual: true
+      };
+      onAddToQueue(manualParticipant);
+      setManualName('');
+      setShowManualAdd(false);
+    }
+  };
+
   return (
     <div className="participant-list">
       <h2>Participants ({participants.length})</h2>
+
+      {/* Manual Add Button/Input */}
+      <div className="manual-add-container">
+        {!showManualAdd ? (
+          <button
+            className="manual-add-button"
+            onClick={() => setShowManualAdd(true)}
+          >
+            + Add Participant Manually
+          </button>
+        ) : (
+          <div className="manual-add-form">
+            <input
+              type="text"
+              className="manual-add-input"
+              placeholder="Enter name..."
+              value={manualName}
+              onChange={(e) => setManualName(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && handleManualAdd()}
+              autoFocus
+            />
+            <button
+              className="manual-add-submit"
+              onClick={handleManualAdd}
+            >
+              Add
+            </button>
+            <button
+              className="manual-add-cancel"
+              onClick={() => {setShowManualAdd(false); setManualName('');}}
+            >
+              Cancel
+            </button>
+          </div>
+        )}
+      </div>
+
       <div className="participant-items">
         {participants.map((participant) => {
           const stats = speakerStats[participant.userId];

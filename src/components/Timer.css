@@ -1,9 +1,10 @@
-.timer-container {
-  background: white;
-  border-radius: 0.25rem;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-  padding: 1rem;
-  text-align: center;
+body #root .timer-container,
+html body #root .timer-container {
+  background: white !important;
+  border-radius: 0.25rem !important;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1) !important;
+  padding: 1rem !important;
+  text-align: center !important;
 }
 
 .current-speaker {
@@ -25,26 +26,30 @@
   justify-content: center;
 }
 
-.timer-display {
-  font-size: 3rem;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  margin: 0.5rem 0;
-  transition: color 0.3s ease;
+body #root .timer-display,
+html body #root .timer-display {
+  font-size: 3rem !important;
+  font-weight: 700 !important;
+  font-variant-numeric: tabular-nums !important;
+  margin: 0.5rem 0 !important;
+  transition: color 0.3s ease !important;
+  line-height: 1 !important;
 }
 
-.timer-progress {
-  width: 100%;
-  height: 6px;
-  background: #e0e0e0;
-  border-radius: 3px;
-  overflow: hidden;
-  margin: 0.5rem 0 1rem 0;
+body #root .timer-progress,
+html body #root .timer-progress {
+  width: 100% !important;
+  height: 6px !important;
+  background: #e0e0e0 !important;
+  border-radius: 3px !important;
+  overflow: hidden !important;
+  margin: 0.5rem 0 1rem 0 !important;
 }
 
-.timer-progress-bar {
-  height: 100%;
-  transition: width 1s linear, background-color 0.3s ease;
+body #root .timer-progress-bar,
+html body #root .timer-progress-bar {
+  height: 100% !important;
+  transition: width 1s linear, background-color 0.3s ease !important;
 }
 
 .timer-button {

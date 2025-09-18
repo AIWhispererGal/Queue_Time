@@ -1,18 +1,20 @@
-.speaker-queue {
-  background: white;
-  border-radius: 0.25rem;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-  padding: 0.5rem;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
+body #root .speaker-queue,
+html body #root .speaker-queue {
+  background: white !important;
+  border-radius: 0.25rem !important;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1) !important;
+  padding: 0.5rem !important;
+  flex: 1 !important;
+  display: flex !important;
+  flex-direction: column !important;
 }
 
-.queue-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 0.5rem;
+body #root .queue-header,
+html body #root .queue-header {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  margin-bottom: 0.5rem !important;
 }
 
 .queue-header h2 {
@@ -52,22 +54,24 @@
   margin-top: 0.25rem;
 }
 
-.queue-list {
-  flex: 1;
-  overflow-y: auto;
-  min-height: 120px;
+body #root .queue-list,
+html body #root .queue-list {
+  flex: 1 !important;
+  overflow-y: auto !important;
+  min-height: 120px !important;
 }
 
 .queue-list.dragging-over {
   background: #f0f0f0;
 }
 
-.queue-item {
-  background: #f9f9f9;
-  border-radius: 0.25rem;
-  margin-bottom: 0.25rem;
-  position: relative;
-  transition: all 0.2s;
+body #root .queue-item,
+html body #root .queue-item {
+  background: #f9f9f9 !important;
+  border-radius: 0.25rem !important;
+  margin-bottom: 0.25rem !important;
+  position: relative !important;
+  transition: all 0.2s !important;
 }
 
 .queue-item.dragging {

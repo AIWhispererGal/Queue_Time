@@ -1,22 +1,26 @@
+/* Global reset with reasonable defaults */
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
 }
 
-body {
+#root {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   background-color: #f5f5f5;
+  width: 100%;
+  height: 100vh;
 }
 
 .app {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  background: #f5f5f5;
 }
 
 .app-header {
@@ -32,6 +36,8 @@ body {
 .app-header h1 {
   font-size: 1rem;
   font-weight: 600;
+  color: white;
+  margin: 0;
 }
 
 .dev-mode-badge {
@@ -102,4 +108,65 @@ button:disabled {
   .left-panel, .right-panel, .center-panel {
     max-height: none;
   }
+}
+
+/* Header Controls */
+.header-controls {
+  display: flex !important;
+  gap: 0.5rem !important;
+  align-items: center !important;
+}
+
+.timing-badge {
+  background: #FF9800 !important;
+  color: white !important;
+  padding: 0.125rem 0.5rem !important;
+  border-radius: 0.25rem !important;
+  font-size: 0.625rem !important;
+  font-weight: bold !important;
+}
+
+.btn-small {
+  font-size: 0.625rem !important;
+  padding: 0.25rem 0.5rem !important;
+  background: #666 !important;
+  color: white !important;
+  border: none !important;
+  border-radius: 0.25rem !important;
+  cursor: pointer !important;
+}
+
+.btn-active {
+  background: #4CAF50 !important;
+}
+
+.btn-inactive {
+  background: #666 !important;
+}
+
+.error-text {
+  font-size: 0.5rem !important;
+  color: #ff9800 !important;
+  margin-left: 0.5rem !important;
+}
+
+/* Debug Panel */
+.debug-panel {
+  position: fixed !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  background: #333 !important;
+  color: #0f0 !important;
+  padding: 10px !important;
+  font-size: 12px !important;
+  font-family: monospace !important;
+  border-top: 1px solid #555 !important;
+  max-height: 200px !important;
+  overflow: auto !important;
+  z-index: 9999 !important;
+}
+
+.debug-error {
+  color: #f00 !important;
 }

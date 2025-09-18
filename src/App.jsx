@@ -21,102 +21,220 @@ function App() {
   const [myUserId, setMyUserId] = useState(null);
   const [zoomStream, setZoomStream] = useState(null);
   const [videoOverlayEnabled, setVideoOverlayEnabled] = useState(true);
+  const [sdkError, setSdkError] = useState(null);
+  const [debugInfo, setDebugInfo] = useState('Waiting to initialize...');
 
   useEffect(() => {
-    initializeZoomApp();
+    // Inject critical styles for Zoom iframe compatibility
+    const injectCriticalStyles = () => {
+      // Check if styles already exist to prevent duplicates
+      if (document.querySelector('style[data-critical="zoom-app"]')) {
+        console.log('Critical styles already injected, skipping...');
+        return;
+      }
+
+      const styleEl = document.createElement('style');
+      styleEl.setAttribute('data-critical', 'zoom-app');
+      document.head.appendChild(styleEl);
+
+      // Use insertRule to avoid CSP violations with innerHTML
+      const sheet = styleEl.sheet;
+      const rules = [
+        'body #root { background: #f5f5f5 !important; }',
+        'body #root .app { display: flex !important; flex-direction: column !important; min-height: 100vh !important; }',
+        'body #root .app-header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important; color: white !important; padding: 0.5rem 1rem !important; display: flex !important; align-items: center !important; justify-content: space-between !important; }',
+        'body #root .main-layout { flex: 1 !important; display: flex !important; gap: 0.5rem !important; padding: 0.5rem !important; }',
+        'body #root .left-panel, body #root .right-panel { flex: 1 !important; background: white !important; border-radius: 0.25rem !important; padding: 0.5rem !important; }',
+        'body #root .center-panel { flex: 1.5 !important; display: flex !important; flex-direction: column !important; gap: 0.5rem !important; }'
+      ];
+
+      rules.forEach(rule => {
+        try {
+          sheet.insertRule(rule, sheet.cssRules.length);
+        } catch (e) {
+          console.warn('Failed to insert CSS rule:', rule, e);
+        }
+      });
+      
+      console.log('Critical styles injected successfully using insertRule');
+    };
+
+    injectCriticalStyles();
+
+    // Wait a bit for SDK to be ready in Zoom client
+    const timer = setTimeout(() => {
+      initializeZoomApp();
+    }, 1000);
+
+    return () => clearTimeout(timer);
   }, []);
 
   const initializeZoomApp = async () => {
+    setDebugInfo('Starting SDK initialization...');
     try {
-      console.log('Starting Zoom SDK initialization...');
-      console.log('zoomSdk available:', !!zoomSdk);
+      console.log('Initializing Zoom SDK...');
 
-      // Try minimal config first
+      // Configure SDK with event-based capabilities that work without special permissions
       const configResponse = await zoomSdk.config({
-        capabilities: ['getMeetingParticipants'],
+        capabilities: [
+          'getMeetingContext',
+          'getRunningContext',
+          'getUserContext',
+          'onParticipantChange',
+          'onMeeting',
+          'onExpandApp',
+          'onConnect',
+          'onMessage',
+          'onReaction'
+        ],
+        version: '0.16.0'
       });
 
-      console.log('Zoom SDK configured:', configResponse);
+      console.log('SDK configured:', configResponse);
+      setDebugInfo('SDK configured successfully! Using event-based tracking.');
 
-      // Get current user info
-      const context = await zoomSdk.getRunningContext();
-      console.log('Running context:', context);
-      setMyUserId(context.userId);
+      // Mark as connected immediately after config success
+      setIsZoomConnected(true);
 
-      // Get meeting participants using the newer API
+      // Get current user info first
+      try {
+        const context = await zoomSdk.getRunningContext();
+        console.log('Running context:', context);
+        setMyUserId(context.userId);
+        setDebugInfo(`Connected as user: ${context.userId}`);
+      } catch (e) {
+        console.log('Could not get running context:', e);
+      }
+
+      // Get meeting context for basic info
       try {
         const meetingContext = await zoomSdk.getMeetingContext();
         console.log('Meeting context:', meetingContext);
 
-        const participantList = await zoomSdk.getMeetingParticipants();
-        console.log('Participants:', participantList);
-
-        // Format participants
-        const formattedParticipants = participantList.participants.map(p => ({
-          userId: p.participantId || p.userId,
-          displayName: p.displayName || p.screenName || 'Unknown',
-          avatar: p.avatar || null,
-          role: p.role || (p.isHost ? 'host' : 'participant')
-        }));
-
-        setParticipants(formattedParticipants);
-        setIsZoomConnected(true);
-      } catch (e) {
-        console.log('Error getting participants:', e);
-        // Try the older API
-        try {
-          const { participants } = await zoomSdk.listParticipants();
-          console.log('Participants (old API):', participants);
-          setParticipants(participants);
-          setIsZoomConnected(true);
-        } catch (e2) {
-          console.log('Error with old API too:', e2);
-          throw e2;
+        // Extract any participant info from meeting context if available
+        if (meetingContext.meetingID) {
+          setDebugInfo(`Connected to meeting: ${meetingContext.meetingID}`);
         }
+      } catch (e) {
+        console.log('Could not get meeting context:', e);
       }
 
-      // Listen for participant changes
-      zoomSdk.onParticipantChange((event) => {
-        // Merge with existing panelists if any
-        const panelists = participants.filter(p => p.role === 'panelist');
-        const updatedList = [...event.participants, ...panelists];
-        const unique = Array.from(
-          new Map(updatedList.map(a => [a.userId, a])).values()
-        );
-        setParticipants(unique);
-      });
+      // Set up event listeners first (these work without special permissions)
+      console.log('Setting up event listeners...');
 
-      // Listen for panelist changes (webinars)
+      // Primary participant tracking via events
       try {
-        zoomSdk.onPanelistChange((event) => {
-          // Merge with existing participants
-          const regularParticipants = participants.filter(p => !p.role || p.role !== 'panelist');
-          const panelistsWithRole = event.panelists.map(p => ({
-            ...p,
-            role: 'panelist'
-          }));
-          const updatedList = [...regularParticipants, ...panelistsWithRole];
-          const unique = Array.from(
-            new Map(updatedList.map(a => [a.userId, a])).values()
-          );
-          setParticipants(unique);
+        await zoomSdk.onParticipantChange((event) => {
+          console.log('Participant change event:', event);
+          setDebugInfo(`Participant update: ${event.participants?.length || 0} participants`);
+
+          if (event.participants && Array.isArray(event.participants)) {
+            const formattedParticipants = event.participants.map(p => ({
+              userId: p.participantUUID || p.participantId || p.userId || String(Math.random()),
+              displayName: p.displayName || p.screenName || p.userName || 'Unknown User',
+              avatar: p.avatar || null,
+              role: p.role || (p.isHost ? 'host' : 'participant'),
+              isCurrentUser: p.participantUUID === myUserId || p.userId === myUserId
+            }));
+
+            setParticipants(formattedParticipants);
+            console.log('✅ Updated participants via event:', formattedParticipants.length);
+          }
+        });
+        console.log('✅ Participant change listener registered');
+      } catch (e) {
+        console.log('Could not register onParticipantChange:', e);
+      }
+
+      // Try to set up meeting event listener
+      try {
+        await zoomSdk.onMeeting((event) => {
+          console.log('Meeting event:', event);
+          if (event.action === 'ended') {
+            setParticipants([]);
+            setDebugInfo('Meeting ended');
+          }
+        });
+        console.log('✅ Meeting listener registered');
+      } catch (e) {
+        console.log('Could not register onMeeting:', e);
+      }
+
+      // Listen for messages (sometimes used for participant updates)
+      try {
+        await zoomSdk.onMessage((event) => {
+          console.log('Message event:', event);
         });
       } catch (e) {
-        console.log('Panelist events not available');
+        console.log('Could not register onMessage:', e);
       }
-    } catch (error) {
-      console.error('Error initializing Zoom App:', error);
 
-      // For development/testing without Zoom
-      setMyUserId('1'); // Simulate you as John Doe
+      // NOW try to get initial participants - but don't fail if we can't
+      try {
+        console.log('Attempting to get initial participants...');
+
+        // Try multiple approaches in order of likelihood to work
+        let participantData = null;
+
+        // Approach 1: Try getMeetingParticipants (might work in some contexts)
+        try {
+          participantData = await zoomSdk.getMeetingParticipants();
+          console.log('getMeetingParticipants succeeded:', participantData);
+        } catch (e) {
+          console.log('getMeetingParticipants failed (expected):', e.message);
+        }
+
+        // Approach 2: Try listParticipants (older API)
+        if (!participantData) {
+          try {
+            participantData = await zoomSdk.listParticipants();
+            console.log('listParticipants succeeded:', participantData);
+          } catch (e) {
+            console.log('listParticipants failed:', e.message);
+          }
+        }
+
+        // Process any participant data we got
+        if (participantData && participantData.participants) {
+          const formattedParticipants = participantData.participants.map(p => ({
+            userId: p.participantUUID || p.participantId || p.userId || String(Math.random()),
+            displayName: p.displayName || p.screenName || p.userName || 'Unknown User',
+            avatar: p.avatar || null,
+            role: p.role || (p.isHost ? 'host' : 'participant')
+          }));
+
+          setParticipants(formattedParticipants);
+          setDebugInfo(`Loaded ${formattedParticipants.length} participants`);
+        } else {
+          console.log('No initial participants available - waiting for events');
+          setDebugInfo('Waiting for participants to join (event-based mode)');
+          setParticipants([]); // Start with empty, will populate via events
+        }
+
+      } catch (e) {
+        console.log('Could not get initial participants (using event mode):', e.message);
+        setDebugInfo('Event mode active - participants will appear as they join/leave');
+      }
+
+      // Success - we're connected even if we don't have participants yet
+      console.log('✅ Zoom SDK initialized successfully in event mode');
+
+    } catch (error) {
+      console.error('Zoom SDK initialization failed:', error);
+      setSdkError(error.message || 'Unknown error');
+      setDebugInfo('SDK Error: ' + (error.message || 'Unknown error'));
+
+      // Load mock data for testing
+      console.log('Loading mock data for testing');
+      setMyUserId('1');
       setParticipants([
-        { userId: '1', displayName: 'John Doe (You)', avatar: null, role: 'panelist' },
-        { userId: '2', displayName: 'Jane Smith', avatar: null, role: 'panelist' },
-        { userId: '3', displayName: 'Bob Johnson', avatar: null, role: 'panelist' },
-        { userId: '4', displayName: 'Alice Brown', avatar: null },
-        { userId: '5', displayName: 'Charlie Davis', avatar: null },
-        { userId: '6', displayName: 'Sarah Lee', avatar: null },
-        { userId: '7', displayName: 'Mike Wilson', avatar: null, role: 'panelist' },
+        { userId: '1', displayName: 'John Doe (You)', avatar: null, role: 'host', isCurrentUser: true },
+        { userId: '2', displayName: 'Jane Smith', avatar: null, role: 'participant' },
+        { userId: '3', displayName: 'Bob Johnson', avatar: null, role: 'participant' },
+        { userId: '4', displayName: 'Alice Brown', avatar: null, role: 'participant' },
+        { userId: '5', displayName: 'Charlie Davis', avatar: null, role: 'participant' },
+        { userId: '6', displayName: 'Sarah Lee', avatar: null, role: 'participant' },
+        { userId: '7', displayName: 'Mike Wilson', avatar: null, role: 'participant' },
       ]);
     }
   };
@@ -197,38 +315,34 @@ function App() {
     <div className="app">
       <header className="app-header">
         <h1>Queue Manager</h1>
-        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+        <div className="header-controls">
           {currentSpeaker && (
-            <span style={{
-              background: '#FF9800',
-              color: 'white',
-              padding: '0.125rem 0.5rem',
-              borderRadius: '0.25rem',
-              fontSize: '0.625rem',
-              fontWeight: 'bold'
-            }}>
+            <span className="timing-badge">
               Timing: {currentSpeaker.displayName}
             </span>
           )}
           <button
             onClick={() => setVideoOverlayEnabled(!videoOverlayEnabled)}
-            style={{
-              fontSize: '0.625rem',
-              padding: '0.25rem 0.5rem',
-              background: videoOverlayEnabled ? '#4CAF50' : '#666'
-            }}
+            className={`btn-small ${videoOverlayEnabled ? 'btn-active' : 'btn-inactive'}`}
             title="Shows timer on YOUR video for everyone to see"
           >
             My Video Timer: {videoOverlayEnabled ? 'ON' : 'OFF'}
           </button>
           <button
             onClick={() => setShowFloatingTimer(!showFloatingTimer)}
-            style={{ fontSize: '0.625rem', padding: '0.25rem 0.5rem' }}
+            className="btn-small"
           >
             Floating: {showFloatingTimer ? 'ON' : 'OFF'}
           </button>
           {!isZoomConnected && (
-            <span className="dev-mode-badge">Dev Mode</span>
+            <>
+              <span className="dev-mode-badge">Dev Mode</span>
+              {sdkError && (
+                <span className="error-text">
+                  {sdkError}
+                </span>
+              )}
+            </>
           )}
         </div>
       </header>
@@ -289,6 +403,15 @@ function App() {
           speakerStats={speakerStats[currentSpeaker?.userId]}
         />
       )}
+
+      {/* Debug Info */}
+      <div className="debug-panel">
+        <div>🔍 DEBUG INFO:</div>
+        <div>SDK Connected: {isZoomConnected ? '✅ YES' : '❌ NO'}</div>
+        <div>Participants: {participants.length}</div>
+        <div>Status: {debugInfo}</div>
+        {sdkError && <div className="debug-error">Error: {sdkError}</div>}
+      </div>
     </div>
   );
 }

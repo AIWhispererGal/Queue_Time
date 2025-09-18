@@ -19,8 +19,9 @@ export default defineConfig({
     headers: {
       'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
       'X-Content-Type-Options': 'nosniff',
-      'Referrer-Policy': 'strict-origin-when-cross-origin'
-      // Removed CSP and X-Frame-Options - they block Zoom SDK communication
+      'Referrer-Policy': 'strict-origin-when-cross-origin',
+      // CSP that allows Zoom but includes required security
+      'Content-Security-Policy': "default-src 'self' https://*.zoom.us https://*.ngrok-free.app; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://*.zoom.us; style-src 'self' 'unsafe-inline' https://*.zoom.us; worker-src 'self' blob:; frame-ancestors https://*.zoom.us;"
     }
   }
 })
