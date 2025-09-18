@@ -19,9 +19,43 @@ export function useVideoOverlay(zoomSdk, currentSpeaker, timeRemaining, timeLimi
 
   useEffect(() => {
     if (!zoomSdk) {
-      if (setDebugMessage) setDebugMessage('No SDK instance');
+      // When SDK becomes null (toggle OFF), try to clear any existing overlay
+      if (setDebugMessage) setDebugMessage('Overlay disabled - clearing...');
+
+      // Try to clear with the last known SDK instance if we had one
+      if (window.lastZoomSdk) {
+        window.lastZoomSdk.clearImage()
+          .then(() => {
+            console.log('✅ Overlay cleared when toggled OFF');
+            if (setDebugMessage) setDebugMessage('Overlay cleared (toggle OFF)');
+          })
+          .catch(err => {
+            console.log('❌ clearImage failed when toggling OFF, trying transparent fallback');
+            // Try drawing a transparent overlay as fallback
+            const clearCanvas = document.createElement('canvas');
+            clearCanvas.width = 1280;
+            clearCanvas.height = 720;
+            const clearCtx = clearCanvas.getContext('2d');
+            clearCtx.clearRect(0, 0, clearCanvas.width, clearCanvas.height);
+
+            const clearImageData = clearCtx.getImageData(0, 0, clearCanvas.width, clearCanvas.height);
+            window.lastZoomSdk.drawImage({
+              x: 0, y: 0,
+              imageData: clearImageData,
+              zIndex: 3
+            }).then(() => {
+              console.log('✅ Drew transparent overlay as fallback');
+              if (setDebugMessage) setDebugMessage('Overlay cleared (transparent)');
+            }).catch(e => {
+              console.log('❌ Failed to clear with transparent overlay:', e);
+            });
+          });
+      }
       return;
     }
+
+    // Store SDK reference for cleanup
+    window.lastZoomSdk = zoomSdk;
 
     // Initialize rendering context for camera mode
     const initRenderingContext = async () => {
@@ -67,29 +101,148 @@ export function useVideoOverlay(zoomSdk, currentSpeaker, timeRemaining, timeLimi
       }
     };
 
-    // Clear overlay when no one is speaking
+    // Show "Queue Ready" message when no one is speaking
     if (!currentSpeaker) {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
       }
 
-      // Clear the overlay - just try clearImage, ignore if it fails
+      // Draw a "Queue Ready" or "Next Speaker?" overlay instead of clearing
       if (renderingContextActive && zoomSdk) {
-        if (setDebugMessage) setDebugMessage('No active speaker');
+        if (setDebugMessage) setDebugMessage('Drawing idle overlay...');
 
         // Reset the successful method when no speaker
         successfulMethodRef.current = null;
 
-        // Try to clear, but don't worry if it fails
-        zoomSdk.clearImage()
-          .then(() => {
-            console.log('Overlay cleared');
-          })
-          .catch(err => {
-            // Silently ignore - clearImage may not be available
-            console.log('Note: clearImage not available (this is OK)');
-          });
+        // Draw an idle state overlay with logo
+        const drawIdleOverlay = async () => {
+          try {
+            const idleCanvas = document.createElement('canvas');
+            idleCanvas.width = 1280;
+            idleCanvas.height = 720;
+            const ctx = idleCanvas.getContext('2d');
+
+            // Clear canvas first
+            ctx.clearRect(0, 0, idleCanvas.width, idleCanvas.height);
+
+            // Load and draw the logo
+            const logoImg = new Image();
+            logoImg.src = '/logo.jpg'; // Public folder assets are served from root
+
+            await new Promise((resolve, reject) => {
+              logoImg.onload = resolve;
+              logoImg.onerror = reject;
+              // Set timeout in case image doesn't load
+              setTimeout(reject, 1000);
+            }).catch(() => {
+              console.log('Logo failed to load, using text fallback');
+            });
+
+            const padding = 20;
+
+            if (logoImg.complete && logoImg.naturalHeight !== 0) {
+              // Logo loaded successfully - draw it
+              const logoSize = 80; // Square logo
+              const x = idleCanvas.width - logoSize - padding;
+              const y = padding;
+
+              // Draw semi-transparent background box for logo
+              ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+              const boxPadding = 10;
+              ctx.fillRect(x - boxPadding, y - boxPadding, logoSize + boxPadding * 2, logoSize + boxPadding * 2);
+
+              // Draw the logo
+              ctx.drawImage(logoImg, x, y, logoSize, logoSize);
+
+              // If there's a queue, show count below logo
+              if (queue && queue.length > 0) {
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                ctx.fillRect(x - boxPadding, y + logoSize + 5, logoSize + boxPadding * 2, 25);
+
+                ctx.fillStyle = '#FFD700';
+                ctx.font = 'bold 16px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(`${queue.length} waiting`, x + logoSize/2, y + logoSize + 22);
+              }
+            } else {
+              // Fallback to text if logo doesn't load
+              const boxWidth = 200;
+              const boxHeight = 60;
+              const x = idleCanvas.width - boxWidth - padding;
+              const y = padding;
+
+              ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+              ctx.fillRect(x, y, boxWidth, boxHeight);
+
+              ctx.fillStyle = '#4CAF50';
+              ctx.font = 'bold 24px Arial';
+              ctx.textAlign = 'center';
+              ctx.fillText('Queue Ready', x + boxWidth/2, y + 38);
+
+              if (queue && queue.length > 0) {
+                ctx.fillStyle = '#FFD700';
+                ctx.font = '14px Arial';
+                ctx.fillText(`${queue.length} waiting`, x + boxWidth/2, y + boxHeight - 8);
+              }
+            }
+
+            // Try to draw using the most reliable method (Method 3 - ImageData)
+            const imageData = ctx.getImageData(0, 0, idleCanvas.width, idleCanvas.height);
+
+            await zoomSdk.drawImage({
+              x: 0,
+              y: 0,
+              imageData: imageData,
+              zIndex: 3
+            });
+
+            console.log('✅ Drew "Queue Ready" idle overlay');
+            if (setDebugMessage) setDebugMessage('Queue Ready overlay shown');
+
+          } catch (err) {
+            console.log('Failed to draw idle overlay:', err.message);
+            // Try base64 as fallback
+            try {
+              const idleCanvas = document.createElement('canvas');
+              idleCanvas.width = 1280;
+              idleCanvas.height = 720;
+              const ctx = idleCanvas.getContext('2d');
+
+              // Same design but with base64
+              ctx.clearRect(0, 0, idleCanvas.width, idleCanvas.height);
+              const boxWidth = 200;
+              const boxHeight = 60;
+              const padding = 20;
+              const x = idleCanvas.width - boxWidth - padding;
+              const y = padding;
+
+              ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+              ctx.fillRect(x, y, boxWidth, boxHeight);
+
+              ctx.fillStyle = '#4CAF50';
+              ctx.font = 'bold 24px Arial';
+              ctx.textAlign = 'center';
+              ctx.fillText('Queue Ready', x + boxWidth/2, y + 38);
+
+              const base64Idle = idleCanvas.toDataURL('image/png');
+              await zoomSdk.drawImage({
+                x: 0,
+                y: 0,
+                imageData: base64Idle,
+                zIndex: 3
+              });
+
+              console.log('✅ Drew idle overlay with base64');
+              if (setDebugMessage) setDebugMessage('Queue Ready (base64)');
+            } catch (fallbackErr) {
+              console.log('Failed to draw idle overlay with any method:', fallbackErr);
+              if (setDebugMessage) setDebugMessage('Idle overlay failed');
+            }
+          }
+        };
+
+        drawIdleOverlay();
       }
 
       return;
