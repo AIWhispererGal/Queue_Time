@@ -1,21 +1,35 @@
 import { useEffect, useRef, useState } from 'react';
+import { OverlayRenderer } from '../utils/overlayRenderer';
 
 /**
  * Hook to overlay timer on video using Zoom Apps SDK Layers API
  * Uses drawImage/clearImage instead of setVirtualForeground
+ * Now with enhanced full-screen design including ring progress, queue, and stats
  */
-export function useVideoOverlay(zoomSdk, currentSpeaker, timeRemaining, timeLimit, myUserId, queue = [], setDebugMessage) {
+export function useVideoOverlay(zoomSdk, currentSpeaker, timeRemaining, timeLimit, myUserId, queue = [], setDebugMessage, stats = {}, isPaused = false) {
   const intervalRef = useRef(null);
   const canvasRef = useRef(null);
   const lastUpdateRef = useRef(0);
   const successfulMethodRef = useRef(null); // Track which method works
   const timeRemainingRef = useRef(timeRemaining); // Track time without triggering re-renders
+  const isPausedRef = useRef(isPaused); // Track pause state
   const [renderingContextActive, setRenderingContextActive] = useState(false);
+  const overlayRendererRef = useRef(null);
+  const graceAnimationRef = useRef(false);
+  const forceUpdateRef = useRef(false); // Force update flag
 
   // Update the ref when timeRemaining changes, but don't trigger effect
   useEffect(() => {
     timeRemainingRef.current = timeRemaining;
   }, [timeRemaining]);
+
+  // Update pause ref and force an update when pause state changes
+  useEffect(() => {
+    if (isPausedRef.current !== isPaused) {
+      isPausedRef.current = isPaused;
+      forceUpdateRef.current = true; // Force next update regardless of timer
+    }
+  }, [isPaused]);
 
   useEffect(() => {
     if (!zoomSdk) {
@@ -101,148 +115,53 @@ export function useVideoOverlay(zoomSdk, currentSpeaker, timeRemaining, timeLimi
       }
     };
 
-    // Show "Queue Ready" message when no one is speaking
+    // Show idle state when no one is speaking
     if (!currentSpeaker) {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
       }
 
-      // Draw a "Queue Ready" or "Next Speaker?" overlay instead of clearing
+      // Use the new overlay renderer for idle state too
       if (renderingContextActive && zoomSdk) {
-        if (setDebugMessage) setDebugMessage('Drawing idle overlay...');
+        if (setDebugMessage) setDebugMessage('Drawing enhanced idle overlay...');
 
         // Reset the successful method when no speaker
         successfulMethodRef.current = null;
 
-        // Draw an idle state overlay with logo
-        const drawIdleOverlay = async () => {
+        // Clear overlay when no speaker
+        const clearOverlay = async () => {
           try {
-            const idleCanvas = document.createElement('canvas');
-            idleCanvas.width = 1280;
-            idleCanvas.height = 720;
-            const ctx = idleCanvas.getContext('2d');
-
-            // Clear canvas first
-            ctx.clearRect(0, 0, idleCanvas.width, idleCanvas.height);
-
-            // Load and draw the logo
-            const logoImg = new Image();
-            logoImg.src = '/logo.jpg'; // Public folder assets are served from root
-
-            await new Promise((resolve, reject) => {
-              logoImg.onload = resolve;
-              logoImg.onerror = reject;
-              // Set timeout in case image doesn't load
-              setTimeout(reject, 1000);
-            }).catch(() => {
-              console.log('Logo failed to load, using text fallback');
-            });
-
-            const padding = 20;
-
-            if (logoImg.complete && logoImg.naturalHeight !== 0) {
-              // Logo loaded successfully - draw it
-              const logoSize = 80; // Square logo
-              const x = idleCanvas.width - logoSize - padding;
-              const y = padding;
-
-              // Draw semi-transparent background box for logo
-              ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-              const boxPadding = 10;
-              ctx.fillRect(x - boxPadding, y - boxPadding, logoSize + boxPadding * 2, logoSize + boxPadding * 2);
-
-              // Draw the logo
-              ctx.drawImage(logoImg, x, y, logoSize, logoSize);
-
-              // If there's a queue, show count below logo
-              if (queue && queue.length > 0) {
-                ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-                ctx.fillRect(x - boxPadding, y + logoSize + 5, logoSize + boxPadding * 2, 25);
-
-                ctx.fillStyle = '#FFD700';
-                ctx.font = 'bold 16px Arial';
-                ctx.textAlign = 'center';
-                ctx.fillText(`${queue.length} waiting`, x + logoSize/2, y + logoSize + 22);
-              }
-            } else {
-              // Fallback to text if logo doesn't load
-              const boxWidth = 200;
-              const boxHeight = 60;
-              const x = idleCanvas.width - boxWidth - padding;
-              const y = padding;
-
-              ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-              ctx.fillRect(x, y, boxWidth, boxHeight);
-
-              ctx.fillStyle = '#4CAF50';
-              ctx.font = 'bold 24px Arial';
-              ctx.textAlign = 'center';
-              ctx.fillText('Queue Ready', x + boxWidth/2, y + 38);
-
-              if (queue && queue.length > 0) {
-                ctx.fillStyle = '#FFD700';
-                ctx.font = '14px Arial';
-                ctx.fillText(`${queue.length} waiting`, x + boxWidth/2, y + boxHeight - 8);
-              }
-            }
-
-            // Try to draw using the most reliable method (Method 3 - ImageData)
-            const imageData = ctx.getImageData(0, 0, idleCanvas.width, idleCanvas.height);
-
-            await zoomSdk.drawImage({
-              x: 0,
-              y: 0,
-              imageData: imageData,
-              zIndex: 3
-            });
-
-            console.log('✅ Drew "Queue Ready" idle overlay');
-            if (setDebugMessage) setDebugMessage('Queue Ready overlay shown');
-
+            // Try to clear the overlay
+            await zoomSdk.clearImage();
+            console.log('✅ Overlay cleared - no current speaker');
+            if (setDebugMessage) setDebugMessage('Overlay cleared');
           } catch (err) {
-            console.log('Failed to draw idle overlay:', err.message);
-            // Try base64 as fallback
+            console.log('Failed to clear overlay:', err.message);
+            // Try drawing a transparent overlay as fallback
             try {
-              const idleCanvas = document.createElement('canvas');
-              idleCanvas.width = 1280;
-              idleCanvas.height = 720;
-              const ctx = idleCanvas.getContext('2d');
+              const clearCanvas = document.createElement('canvas');
+              clearCanvas.width = 1280;
+              clearCanvas.height = 720;
+              const clearCtx = clearCanvas.getContext('2d');
+              clearCtx.clearRect(0, 0, clearCanvas.width, clearCanvas.height);
 
-              // Same design but with base64
-              ctx.clearRect(0, 0, idleCanvas.width, idleCanvas.height);
-              const boxWidth = 200;
-              const boxHeight = 60;
-              const padding = 20;
-              const x = idleCanvas.width - boxWidth - padding;
-              const y = padding;
-
-              ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-              ctx.fillRect(x, y, boxWidth, boxHeight);
-
-              ctx.fillStyle = '#4CAF50';
-              ctx.font = 'bold 24px Arial';
-              ctx.textAlign = 'center';
-              ctx.fillText('Queue Ready', x + boxWidth/2, y + 38);
-
-              const base64Idle = idleCanvas.toDataURL('image/png');
+              const clearImageData = clearCtx.getImageData(0, 0, clearCanvas.width, clearCanvas.height);
               await zoomSdk.drawImage({
-                x: 0,
-                y: 0,
-                imageData: base64Idle,
+                x: 0, y: 0,
+                imageData: clearImageData,
                 zIndex: 3
               });
-
-              console.log('✅ Drew idle overlay with base64');
-              if (setDebugMessage) setDebugMessage('Queue Ready (base64)');
+              console.log('✅ Drew transparent overlay as clear fallback');
+              if (setDebugMessage) setDebugMessage('Overlay cleared (transparent)');
             } catch (fallbackErr) {
-              console.log('Failed to draw idle overlay with any method:', fallbackErr);
-              if (setDebugMessage) setDebugMessage('Idle overlay failed');
+              console.log('Failed to clear with transparent overlay:', fallbackErr);
+              if (setDebugMessage) setDebugMessage('Clear overlay failed');
             }
           }
         };
 
-        drawIdleOverlay();
+        clearOverlay();
       }
 
       return;
@@ -255,130 +174,59 @@ export function useVideoOverlay(zoomSdk, currentSpeaker, timeRemaining, timeLimi
       });
     }
 
-    // Create canvas for drawing overlay
-    const canvas = document.createElement('canvas');
-    // Use standard HD resolution for better quality
-    canvas.width = 1280;
-    canvas.height = 720;
+    // Create canvas and renderer only once
+    if (!canvasRef.current) {
+      const canvas = document.createElement('canvas');
+      // Use Zoom's expected resolution
+      canvas.width = 1280;  // Zoom standard
+      canvas.height = 720;   // Zoom standard
+      canvasRef.current = canvas;
+
+      // Initialize overlay renderer
+      overlayRendererRef.current = new OverlayRenderer(canvas, {
+        showRing: true,
+        showDigital: true,
+        showQueue: true,
+        showStats: true
+      });
+    }
+
+    const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
-    canvasRef.current = canvas;
 
-    // Helper function to draw rounded rectangle
-    const drawRoundedRect = (x, y, width, height, radius) => {
-      ctx.beginPath();
-      ctx.moveTo(x + radius, y);
-      ctx.lineTo(x + width - radius, y);
-      ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
-      ctx.lineTo(x + width, y + height - radius);
-      ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
-      ctx.lineTo(x + radius, y + height);
-      ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
-      ctx.lineTo(x, y + radius);
-      ctx.quadraticCurveTo(x, y, x + radius, y);
-      ctx.closePath();
-    };
-
-    // Function to draw the timer overlay
+    // Function to draw the timer overlay using new renderer
     const drawTimerOverlay = () => {
-      const width = canvas.width;
-      const height = canvas.height;
+      // Get next speaker from queue (first person in queue since current speaker is not in queue)
+      const nextSpeaker = queue && queue.length > 0 ? queue[0] : null;
 
-      // Clear canvas with transparency
-      ctx.clearRect(0, 0, width, height);
+      // Calculate stats
+      const sessionTime = stats.sessionTime || '00:00';
+      const avgTime = stats.avgTime || '00:00';
+      const totalSpeakers = stats.totalSpeakers || queue.length;
 
-      // Timer position and size
-      const timerWidth = Math.min(350, width * 0.27);
-      const timerHeight = 90;
-      const padding = 20;
-      const x = width - timerWidth - padding;
-      const y = padding;
-
-      // Semi-transparent background for timer
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
-      drawRoundedRect(x, y, timerWidth, timerHeight, 10);
-      ctx.fill();
-
-      // Timer text
-      const mins = Math.floor(timeRemainingRef.current / 60);
-      const secs = timeRemainingRef.current % 60;
-      const timeText = `${mins}:${secs.toString().padStart(2, '0')}`;
-
-      // Color based on time remaining
-      const percentage = (timeRemainingRef.current / timeLimit) * 100;
-      let color = '#4CAF50'; // Green
-      if (percentage <= 20) color = '#F44336'; // Red
-      else if (percentage <= 50) color = '#FFC107'; // Yellow
-
-      // Draw time
-      ctx.fillStyle = color;
-      ctx.font = 'bold 42px Arial';
-      ctx.textAlign = 'left';
-      ctx.fillText(timeText, x + 20, y + 55);
-
-      // Draw who's speaking
-      ctx.fillStyle = '#ffffff';
-      ctx.font = '18px Arial';
-      ctx.fillText(`Speaking: ${currentSpeaker.displayName}`, x + 20, y + 25);
-
-      // Progress bar
-      const progressY = y + timerHeight - 12;
-      const progressWidth = timerWidth - 40;
-      const progressX = x + 20;
-
-      // Background
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
-      ctx.fillRect(progressX, progressY, progressWidth, 4);
-
-      // Progress
-      ctx.fillStyle = color;
-      const currentProgress = (timeRemainingRef.current / timeLimit) * progressWidth;
-      ctx.fillRect(progressX, progressY, currentProgress, 4);
-
-      // Draw Queue below timer if exists
-      if (queue && queue.length > 0) {
-        const queueY = y + timerHeight + 10;
-        const queueHeight = Math.min(queue.length * 30 + 35, 180);
-
-        // Queue background
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
-        drawRoundedRect(x, queueY, timerWidth, queueHeight, 10);
-        ctx.fill();
-
-        // Queue header
-        ctx.fillStyle = '#FFD700';
-        ctx.font = 'bold 16px Arial';
-        ctx.fillText('NEXT UP:', x + 20, queueY + 25);
-
-        // Queue items (show up to 5)
-        ctx.fillStyle = '#ffffff';
-        ctx.font = '14px Arial';
-        const maxQueueDisplay = Math.min(queue.length, 5);
-
-        for (let i = 0; i < maxQueueDisplay; i++) {
-          const itemY = queueY + 45 + (i * 25);
-          const displayText = `${i + 1}. ${queue[i].displayName}`;
-          ctx.fillText(displayText, x + 20, itemY);
-        }
-
-        // If more than 5 in queue, show count
-        if (queue.length > 5) {
-          const moreY = queueY + 45 + (maxQueueDisplay * 25);
-          ctx.fillStyle = '#cccccc';
-          ctx.font = 'italic 13px Arial';
-          ctx.fillText(`... +${queue.length - 5} more`, x + 20, moreY);
-        }
-      }
+      // Draw the enhanced overlay
+      overlayRendererRef.current.drawOverlay({
+        currentSpeaker,
+        nextSpeaker,
+        timeRemaining: timeRemainingRef.current,
+        timeLimit,
+        queue,
+        isPaused: isPausedRef.current, // Use ref to get current pause state
+        stats,
+        graceAnimating: graceAnimationRef.current
+      });
     };
 
     // Function to update the overlay using drawImage
     const updateOverlay = async () => {
       try {
-        // Only update if time has actually changed (once per second)
+        // Update if time has changed OR if we need to force update (e.g., pause state changed)
         const currentSecond = Math.floor(timeRemainingRef.current);
-        if (currentSecond === lastUpdateRef.current) {
-          return; // Skip this update, timer hasn't changed
+        if (currentSecond === lastUpdateRef.current && !forceUpdateRef.current) {
+          return; // Skip this update, nothing changed
         }
         lastUpdateRef.current = currentSecond;
+        forceUpdateRef.current = false; // Reset force update flag
 
         // Draw the overlay
         drawTimerOverlay();

@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Overlay Mockup - Final Design</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Orbitron:wght@900&family=Inter:wght@400;600;700&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #2a2a2a;
+            background-image: url('https://picsum.photos/1920/1080');
+            background-size: cover;
+            background-position: center;
+            height: 100vh;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(ellipse at center, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.7) 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.5s ease;
+        }
+
+        /* Main timer and ring container - perfectly centered */
+        .main-display {
+            position: relative;
+            width: 650px;
+            height: 650px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Progress Ring SVG */
+        svg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            transform: rotate(-90deg);
+            z-index: 1;
+        }
+
+        .ring-background {
+            fill: none;
+            stroke: rgba(255,255,255,0.08);
+            stroke-width: 40;
+        }
+
+        .ring-progress {
+            fill: none;
+            stroke: url(#gradient);
+            stroke-width: 40;
+            stroke-linecap: round;
+            stroke-dasharray: 1884;
+            stroke-dashoffset: 0;
+            transition: stroke-dashoffset 1s linear;
+            filter: drop-shadow(0 0 25px rgba(74, 222, 128, 0.5));
+        }
+
+        .ring-progress.warning {
+            stroke: url(#gradient-warning);
+            filter: drop-shadow(0 0 25px rgba(251, 191, 36, 0.5));
+        }
+
+        .ring-progress.critical {
+            stroke: url(#gradient-critical);
+            filter: drop-shadow(0 0 40px rgba(239, 68, 68, 0.8));
+            animation: criticalPulse 0.5s ease-in-out infinite;
+        }
+
+        /* Timer display - centered */
+        .timer-group {
+            position: absolute;
+            text-align: center;
+            z-index: 10;
+        }
+
+        .timer-display {
+            font-family: 'Orbitron', monospace;
+            font-size: 160px;
+            font-weight: 900;
+            color: white;
+            text-shadow:
+                0 0 40px currentColor,
+                0 8px 16px rgba(0,0,0,0.8);
+            line-height: 1;
+            letter-spacing: 8px;
+            animation: numberPulse 1s ease-in-out infinite;
+        }
+
+        .timer-display.warning {
+            color: #fbbf24;
+        }
+
+        .timer-display.critical {
+            color: #ef4444;
+            animation: criticalNumberPulse 0.5s ease-in-out infinite;
+        }
+
+        /* Current speaker at top */
+        .current-speaker-badge {
+            position: absolute;
+            top: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, rgba(74,222,128,0.15) 0%, rgba(16,185,129,0.15) 100%);
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(74,222,128,0.3);
+            border-radius: 20px;
+            padding: 12px 35px;
+            box-shadow: 0 6px 24px rgba(0,0,0,0.3);
+        }
+
+        .current-label {
+            font-size: 14px;
+            color: rgba(255,255,255,0.6);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 4px;
+        }
+
+        .current-name {
+            font-size: 32px;
+            color: white;
+            font-weight: 700;
+            text-shadow: 0 2px 8px rgba(0,0,0,0.5);
+        }
+
+        /* Next speaker at bottom */
+        .next-speaker {
+            position: absolute;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, rgba(96,165,250,0.15) 0%, rgba(147,51,234,0.15) 100%);
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(96,165,250,0.3);
+            border-radius: 20px;
+            padding: 12px 35px;
+            box-shadow: 0 6px 24px rgba(0,0,0,0.3);
+        }
+
+        .next-label {
+            font-size: 14px;
+            color: rgba(255,255,255,0.6);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 4px;
+        }
+
+        .next-name {
+            font-size: 28px;
+            color: #60a5fa;
+            font-weight: 700;
+            text-shadow: 0 0 15px rgba(96,165,250,0.4);
+        }
+
+        /* Compact queue list on left - circles with initials */
+        .queue-list {
+            position: absolute;
+            left: 50px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .queue-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.5s ease;
+            opacity: 0.4;
+        }
+
+        .queue-item.current {
+            opacity: 1;
+            transform: scale(1.1);
+        }
+
+        .queue-item.next {
+            opacity: 0.8;
+        }
+
+        .queue-circle {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.1);
+            border: 2px solid rgba(255,255,255,0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 16px;
+            color: rgba(255,255,255,0.8);
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .queue-item.current .queue-circle {
+            width: 55px;
+            height: 55px;
+            background: linear-gradient(135deg, #4ade80 0%, #10b981 100%);
+            border-color: #4ade80;
+            color: #000;
+            font-size: 20px;
+            box-shadow: 0 0 25px rgba(74,222,128,0.5);
+        }
+
+        .queue-item.next .queue-circle {
+            background: linear-gradient(135deg, rgba(96,165,250,0.3) 0%, rgba(59,130,246,0.3) 100%);
+            border-color: #60a5fa;
+            color: #fff;
+        }
+
+        .queue-name {
+            font-size: 14px;
+            color: rgba(255,255,255,0.7);
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 120px;
+        }
+
+        .queue-item.current .queue-name {
+            color: white;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .queue-item.next .queue-name {
+            color: rgba(255,255,255,0.9);
+        }
+
+        /* Stats panel on right */
+        .stats-panel {
+            position: absolute;
+            right: 50px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .stat-box {
+            background: rgba(0,0,0,0.4);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 15px;
+            padding: 15px 20px;
+            min-width: 160px;
+        }
+
+        .stat-label {
+            font-size: 11px;
+            color: rgba(255,255,255,0.5);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 5px;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: white;
+        }
+
+        .stat-value.time {
+            font-family: 'Orbitron', monospace;
+        }
+
+        /* Keyboard shortcuts */
+        .shortcuts-panel {
+            background: rgba(0,0,0,0.4);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 15px;
+            padding: 15px;
+            font-size: 12px;
+            color: rgba(255,255,255,0.7);
+            line-height: 1.8;
+        }
+
+        .shortcuts-panel kbd {
+            background: rgba(255,255,255,0.15);
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-right: 6px;
+            font-weight: bold;
+            color: white;
+        }
+
+        /* Grace indicator */
+        .grace-indicator {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 100px;
+            color: #60a5fa;
+            font-weight: bold;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 20;
+        }
+
+        .grace-indicator.show {
+            animation: graceAnimation 1s ease forwards;
+        }
+
+        @keyframes graceAnimation {
+            0% {
+                opacity: 0;
+                transform: translate(-50%, -50%) scale(0.5);
+            }
+            50% {
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(1.5);
+            }
+            100% {
+                opacity: 0;
+                transform: translate(-50%, -50%) translateY(-120px) scale(1);
+            }
+        }
+
+        /* Queue animations */
+        @keyframes slideOutLeft {
+            0% {
+                opacity: 1;
+                transform: translateX(0);
+            }
+            100% {
+                opacity: 0;
+                transform: translateX(-150px);
+            }
+        }
+
+        .queue-item.exiting {
+            animation: slideOutLeft 0.5s ease forwards;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        .queue-list.updating {
+            animation: blink 0.3s ease 2;
+        }
+
+        /* Paused state */
+        .paused-state {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.6);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+        }
+
+        .paused .paused-state {
+            display: flex;
+        }
+
+        .pause-text {
+            font-size: 120px;
+            color: #fbbf24;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 15px;
+            animation: pauseBlink 1s ease-in-out infinite;
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes numberPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+        }
+
+        @keyframes criticalNumberPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.08); }
+        }
+
+        @keyframes criticalPulse {
+            0%, 100% {
+                filter: drop-shadow(0 0 40px rgba(239, 68, 68, 0.8));
+            }
+            50% {
+                filter: drop-shadow(0 0 60px rgba(239, 68, 68, 1));
+            }
+        }
+
+        @keyframes pauseBlink {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(0.95); }
+        }
+    </style>
+</head>
+<body>
+    <div class="overlay">
+        <!-- Current Speaker Top -->
+        <div class="current-speaker-badge">
+            <div class="current-label">Speaking</div>
+            <div class="current-name" id="current-speaker">Michael Chen</div>
+        </div>
+
+        <!-- Main Timer Display -->
+        <div class="main-display">
+            <!-- Progress Ring -->
+            <svg>
+                <defs>
+                    <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" style="stop-color:#34d399;stop-opacity:1" />
+                        <stop offset="50%" style="stop-color:#4ade80;stop-opacity:1" />
+                        <stop offset="100%" style="stop-color:#10b981;stop-opacity:1" />
+                    </linearGradient>
+                    <linearGradient id="gradient-warning" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" style="stop-color:#fbbf24;stop-opacity:1" />
+                        <stop offset="100%" style="stop-color:#f59e0b;stop-opacity:1" />
+                    </linearGradient>
+                    <linearGradient id="gradient-critical" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" style="stop-color:#ef4444;stop-opacity:1" />
+                        <stop offset="100%" style="stop-color:#dc2626;stop-opacity:1" />
+                    </linearGradient>
+                </defs>
+                <circle cx="325" cy="325" r="300" class="ring-background"></circle>
+                <circle cx="325" cy="325" r="300" class="ring-progress" id="progress"></circle>
+            </svg>
+
+            <!-- Timer -->
+            <div class="timer-group">
+                <div class="timer-display" id="timer">04:15</div>
+            </div>
+        </div>
+
+        <!-- Next Speaker Bottom -->
+        <div class="next-speaker">
+            <div class="next-label">Next</div>
+            <div class="next-name" id="next-speaker">Sarah Johnson</div>
+        </div>
+
+        <!-- Compact Queue List (Left) -->
+        <div class="queue-list" id="queue">
+            <div class="queue-item current">
+                <div class="queue-circle">MC</div>
+                <div class="queue-name">Michael Chen</div>
+            </div>
+            <div class="queue-item next">
+                <div class="queue-circle">SJ</div>
+                <div class="queue-name">Sarah Johnson</div>
+            </div>
+            <div class="queue-item">
+                <div class="queue-circle">DK</div>
+                <div class="queue-name">David Kim</div>
+            </div>
+            <div class="queue-item">
+                <div class="queue-circle">EW</div>
+                <div class="queue-name">Emily Watson</div>
+            </div>
+            <div class="queue-item">
+                <div class="queue-circle">JM</div>
+                <div class="queue-name">James Miller</div>
+            </div>
+            <div class="queue-item">
+                <div class="queue-circle">AT</div>
+                <div class="queue-name">Alex Thompson</div>
+            </div>
+            <div class="queue-item">
+                <div class="queue-circle">LG</div>
+                <div class="queue-name">Lisa Garcia</div>
+            </div>
+            <div class="queue-item">
+                <div class="queue-circle">RB</div>
+                <div class="queue-name">Robert Brown</div>
+            </div>
+        </div>
+
+        <!-- Stats Panel (Right) -->
+        <div class="stats-panel">
+            <div class="stat-box">
+                <div class="stat-label">Session Time</div>
+                <div class="stat-value time">23:45</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Avg Time/Speaker</div>
+                <div class="stat-value time">03:12</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Total Speakers</div>
+                <div class="stat-value">8</div>
+            </div>
+            <div class="shortcuts-panel">
+                <div><kbd>Space</kbd> End</div>
+                <div><kbd>N</kbd> Next</div>
+                <div><kbd>P</kbd> Pause</div>
+                <div><kbd>G</kbd> +15s</div>
+            </div>
+        </div>
+
+        <!-- Grace indicator -->
+        <div class="grace-indicator" id="grace">+15s</div>
+
+        <!-- Paused State -->
+        <div class="paused-state">
+            <div class="pause-text">PAUSED</div>
+        </div>
+    </div>
+
+    <script>
+        let seconds = 255; // 4:15
+        let totalSeconds = 300; // 5 minutes total
+        let paused = false;
+        let sessionSeconds = 1425; // 23:45 session time
+        const circumference = 2 * Math.PI * 300;
+
+        // Queue management
+        const speakers = [
+            { name: 'Michael Chen', initials: 'MC' },
+            { name: 'Sarah Johnson', initials: 'SJ' },
+            { name: 'David Kim', initials: 'DK' },
+            { name: 'Emily Watson', initials: 'EW' },
+            { name: 'James Miller', initials: 'JM' },
+            { name: 'Alex Thompson', initials: 'AT' },
+            { name: 'Lisa Garcia', initials: 'LG' },
+            { name: 'Robert Brown', initials: 'RB' }
+        ];
+        let currentSpeakerIndex = 0;
+
+        function updateTimer() {
+            if (!paused) {
+                seconds--;
+                sessionSeconds++;
+
+                if (seconds < 0) {
+                    nextSpeaker();
+                    return;
+                }
+            }
+
+            const mins = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            const display = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+            const timer = document.getElementById('timer');
+            timer.textContent = display;
+
+            // Update session time
+            const sessionMins = Math.floor(sessionSeconds / 60);
+            const sessionSecs = sessionSeconds % 60;
+            document.querySelector('.stat-value.time').textContent =
+                `${String(sessionMins).padStart(2, '0')}:${String(sessionSecs).padStart(2, '0')}`;
+
+            // Update progress ring
+            const progress = document.getElementById('progress');
+            const offset = circumference - (seconds / totalSeconds) * circumference;
+            progress.style.strokeDashoffset = offset;
+
+            // Change colors based on time
+            timer.className = 'timer-display';
+            progress.className = 'ring-progress';
+            if (seconds <= 30) {
+                timer.className = 'timer-display critical';
+                progress.className = 'ring-progress critical';
+            } else if (seconds <= 120) {
+                timer.className = 'timer-display warning';
+                progress.className = 'ring-progress warning';
+            }
+        }
+
+        function nextSpeaker() {
+            const queueItems = document.querySelectorAll('.queue-item');
+            const currentItem = queueItems[0];
+
+            currentItem.classList.add('exiting');
+
+            setTimeout(() => {
+                currentSpeakerIndex = (currentSpeakerIndex + 1) % speakers.length;
+                updateQueue();
+                seconds = totalSeconds;
+
+                document.getElementById('current-speaker').textContent = speakers[currentSpeakerIndex].name;
+                document.getElementById('next-speaker').textContent =
+                    speakers[(currentSpeakerIndex + 1) % speakers.length].name;
+
+                const queueList = document.getElementById('queue');
+                queueList.classList.add('updating');
+                setTimeout(() => queueList.classList.remove('updating'), 600);
+            }, 500);
+        }
+
+        function updateQueue() {
+            const queueList = document.getElementById('queue');
+            queueList.innerHTML = '';
+
+            for (let i = 0; i < 8; i++) {
+                const index = (currentSpeakerIndex + i) % speakers.length;
+                const item = document.createElement('div');
+                item.className = 'queue-item';
+
+                if (i === 0) item.classList.add('current');
+                if (i === 1) item.classList.add('next');
+
+                item.innerHTML = `
+                    <div class="queue-circle">${speakers[index].initials}</div>
+                    <div class="queue-name">${speakers[index].name}</div>
+                `;
+
+                queueList.appendChild(item);
+            }
+        }
+
+        setInterval(updateTimer, 1000);
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'p' || e.key === 'P') {
+                paused = !paused;
+                document.querySelector('.overlay').classList.toggle('paused');
+            } else if (e.key === 'g' || e.key === 'G') {
+                seconds = Math.min(seconds + 15, totalSeconds);
+                const grace = document.getElementById('grace');
+                grace.classList.add('show');
+                setTimeout(() => grace.classList.remove('show'), 1000);
+            } else if (e.key === ' ' || e.key === 'e' || e.key === 'E') {
+                e.preventDefault();
+                nextSpeaker();
+            } else if (e.key === 'n' || e.key === 'N' || e.key === 'Enter') {
+                nextSpeaker();
+            }
+        });
+    </script>
+</body>
+</html>

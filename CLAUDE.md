@@ -1,30 +1,35 @@
 # Queue Time - Zoom App Development Guide
 
 ## 🎉 Current Status
-**The app is WORKING!** UI works perfectly AND video overlay is functional!
+**FULLY FUNCTIONAL with professional overlay!** Everything works beautifully!
 
 ## ✅ What's Working
 - Full queue management UI
-- Timer system with color coding
-- Statistics tracking and export
-- App loads successfully in Zoom
-- Mock data fallback for testing
-- ngrok tunnel with HTTPS working
+- Professional full-screen overlay with ring progress
+- Custom background image support
+- Keyboard shortcuts (Space, N, P, G)
+- Pause/resume functionality
+- Grace period (+15s)
+- Stats tracking and display
 
-## 🎊 Video Overlay FULLY WORKING!
-**The overlay displays perfectly on video during meetings!**
+## 🎊 NEW Enhanced Overlay Features!
+**Professional broadcast-quality overlay with amazing visuals!**
 
-### ✅ What's Working:
-- **Method 3 (ImageData)** is most reliable, with base64 as fallback
-- Timer updates smoothly once per second
-- Optimized to only try working methods
-- Shows custom logo when queue is idle
-- Displays queue count when people are waiting
+### ✅ Overlay Features:
+- **Full-screen design** with circular progress ring
+- **Custom background image** from `/public/background.jpg`
+- **Queue visualization** with initials on left side
+- **Stats panel** showing session time, avg time, speakers
+- **Keyboard hints** displayed on overlay
+- **Pause overlay** with visual indicator
+- **Color-coded timer** (green→amber→red)
+- **No ghosting** - clean canvas updates
 
-### ✅ Issues SOLVED:
-1. **Overlay clearing** - Shows logo instead of trying to clear (clearImage doesn't work)
-2. **Method optimization** - Only tries Method 3 and base64 fallbacks
-3. **Visual polish** - Logo displays when idle, professional timer design
+### ✅ Keyboard Shortcuts:
+- **Space/E** - End current speaker's turn
+- **N/Enter** - Start next speaker
+- **P** - Pause/Resume timer
+- **G** - Add 15 seconds grace period
 
 ### Technical Implementation:
 - Using Zoom Apps SDK Layers API with `drawImage`

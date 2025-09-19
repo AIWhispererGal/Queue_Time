@@ -24,6 +24,121 @@ function App() {
   const [sdkError, setSdkError] = useState(null);
   const [debugInfo, setDebugInfo] = useState('Waiting to initialize...');
   const [overlayDebug, setOverlayDebug] = useState('Overlay not active');
+  const [isPaused, setIsPaused] = useState(false);
+  const [sessionStartTime] = useState(Date.now());
+  const [totalSpeakersCount, setTotalSpeakersCount] = useState(0);
+
+  // Calculate session stats
+  const calculateStats = () => {
+    const sessionSeconds = Math.floor((Date.now() - sessionStartTime) / 1000);
+    const sessionMins = Math.floor(sessionSeconds / 60);
+    const sessionSecs = sessionSeconds % 60;
+    const sessionTime = `${String(sessionMins).padStart(2, '0')}:${String(sessionSecs).padStart(2, '0')}`;
+
+    // Get current speaker's stats
+    let currentSpeakerStats = null;
+    if (currentSpeaker) {
+      const stats = speakerStats[currentSpeaker.userId] || { totalTime: 0, instances: 0 };
+
+      // Calculate average time for this speaker (only from completed turns)
+      const avgSecondsForSpeaker = stats.instances > 0 ?
+        Math.floor(stats.totalTime / stats.instances) : 0;
+      const avgMins = Math.floor(avgSecondsForSpeaker / 60);
+      const avgSecs = avgSecondsForSpeaker % 60;
+
+      // Calculate total speaking time across all speakers (including current elapsed time)
+      let totalSpeakingTime = Object.values(speakerStats).reduce(
+        (total, speaker) => total + speaker.totalTime, 0
+      );
+
+      // Add current speaking time if speaker is active
+      const currentElapsed = Math.max(0, timeLimit - timeRemaining);
+      if (currentElapsed > 0) {
+        totalSpeakingTime += currentElapsed;
+      }
+
+      // Calculate percentage of total time including current
+      const speakerTotal = stats.totalTime + currentElapsed;
+      const percentageOfTotal = totalSpeakingTime > 0 ?
+        Math.round((speakerTotal / totalSpeakingTime) * 100) : 0;
+
+      currentSpeakerStats = {
+        turnNumber: stats.instances + 1 // This is their Nth turn (counting current)
+      };
+    }
+
+    return {
+      sessionTime,
+      currentSpeakerStats
+    };
+  };
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyPress = (e) => {
+      // Ignore if user is typing in an input field
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+      switch(e.key) {
+        case ' ':
+        case 'e':
+        case 'E':
+          e.preventDefault();
+          // End current speaker's turn and update stats
+          if (currentSpeaker) {
+            // Calculate time spoken
+            const timeSpoken = timeLimit - timeRemaining;
+
+            // Update speaker stats
+            setSpeakerStats(prev => ({
+              ...prev,
+              [currentSpeaker.userId]: {
+                name: currentSpeaker.displayName,
+                totalTime: (prev[currentSpeaker.userId]?.totalTime || 0) + timeSpoken,
+                instances: (prev[currentSpeaker.userId]?.instances || 0) + 1
+              }
+            }));
+
+            setCurrentSpeaker(null);
+            setTimeRemaining(timeLimit);
+          }
+          break;
+
+        case 'n':
+        case 'N':
+        case 'Enter':
+          if (e.target.tagName !== 'BUTTON') { // Don't trigger on button press
+            e.preventDefault();
+            // Start next speaker
+            if (queue.length > 0 && !currentSpeaker) {
+              const nextSpeaker = queue[0];
+              setCurrentSpeaker(nextSpeaker);
+              setQueue(queue.slice(1));
+              setTimeRemaining(timeLimit);
+              setTotalSpeakersCount(prev => prev + 1);
+            }
+          }
+          break;
+
+        case 'p':
+        case 'P':
+          e.preventDefault();
+          // Toggle pause
+          setIsPaused(prev => !prev);
+          break;
+
+        case 'g':
+        case 'G':
+          e.preventDefault();
+          // Add grace period (+15 seconds)
+          setTimeRemaining(prev => Math.min(prev + 15, timeLimit + 60)); // Max grace of 1 minute over
+          break;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [currentSpeaker, queue, timeLimit]);
 
   useEffect(() => {
     // Inject critical styles for Zoom iframe compatibility
@@ -321,7 +436,9 @@ function App() {
     timeLimit,
     myUserId,
     queue,
-    setOverlayDebug
+    setOverlayDebug,
+    calculateStats(),
+    isPaused
   );
 
   return (
@@ -373,13 +490,15 @@ function App() {
 
         <div className="center-panel">
           <Timer
-            isActive={!!currentSpeaker}
+            isActive={!!currentSpeaker && !isPaused}
             timeLimit={timeLimit}
             currentSpeaker={currentSpeaker}
             speakerStats={speakerStats[currentSpeaker?.userId]}
             onComplete={onTimerComplete}
             onTimeLimitChange={setTimeLimit}
             onTimeRemainingChange={setTimeRemaining}
+            isPaused={isPaused}
+            externalTimeRemaining={timeRemaining}
           />
 
           <SpeakerQueue
@@ -431,6 +550,17 @@ function App() {
         <div>SDK Connected: {isZoomConnected ? '✅ YES' : '❌ NO'}</div>
         <div>Participants: {participants.length}</div>
         <div>Status: {debugInfo}</div>
+        {/* Stats Debug */}
+        <div style={{ borderTop: '1px solid #555', marginTop: '5px', paddingTop: '5px' }}>
+          <div>📊 STATS DEBUG:</div>
+          {currentSpeaker && (
+            <>
+              <div>Turn #: {speakerStats[currentSpeaker.userId]?.instances + 1 || 1}</div>
+              <div>Speaker Total Time: {speakerStats[currentSpeaker.userId]?.totalTime || 0}s</div>
+              <div>Stats Calculated: {calculateStats().currentSpeakerStats ? '✅' : '❌'}</div>
+            </>
+          )}
+        </div>
         {sdkError && <div className="debug-error">Error: {sdkError}</div>}
       </div>
     </div>

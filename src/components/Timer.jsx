@@ -1,17 +1,23 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './Timer.css';
 
-function Timer({ isActive, timeLimit, currentSpeaker, speakerStats, onComplete, onTimeLimitChange, onTimeRemainingChange }) {
+function Timer({ isActive, timeLimit, currentSpeaker, speakerStats, onComplete, onTimeLimitChange, onTimeRemainingChange, isPaused, externalTimeRemaining }) {
   const [timeRemaining, setTimeRemaining] = useState(timeLimit);
   const [totalTimeSpoken, setTotalTimeSpoken] = useState(0);
   const intervalRef = useRef(null);
   const audioRef = useRef(null);
 
+  // Sync with external time changes (for grace period)
   useEffect(() => {
-    if (isActive) {
-      setTimeRemaining(timeLimit);
-      setTotalTimeSpoken(0);
+    if (externalTimeRemaining !== undefined && externalTimeRemaining !== timeRemaining && isActive) {
+      setTimeRemaining(externalTimeRemaining);
+    }
+  }, [externalTimeRemaining]);
 
+  // Handle pause/resume without resetting
+  useEffect(() => {
+    if (isActive && !isPaused) {
+      // Start or resume the timer
       intervalRef.current = setInterval(() => {
         setTimeRemaining(prev => {
           const newTime = prev <= 1 ? 0 : prev - 1;
@@ -36,9 +42,15 @@ function Timer({ isActive, timeLimit, currentSpeaker, speakerStats, onComplete, 
         });
         setTotalTimeSpoken(prev => prev + 1);
       }, 1000);
-    } else {
+    } else if (isPaused && intervalRef.current) {
+      // Pause the timer without resetting
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    } else if (!isActive) {
+      // Only reset when speaker changes (not active)
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
+        intervalRef.current = null;
       }
       setTimeRemaining(timeLimit);
       setTotalTimeSpoken(0);
@@ -52,7 +64,15 @@ function Timer({ isActive, timeLimit, currentSpeaker, speakerStats, onComplete, 
         clearInterval(intervalRef.current);
       }
     };
-  }, [isActive, timeLimit]);
+  }, [isActive, isPaused, timeLimit]);
+
+  // Reset timer when speaker changes
+  useEffect(() => {
+    if (isActive) {
+      setTimeRemaining(timeLimit);
+      setTotalTimeSpoken(0);
+    }
+  }, [currentSpeaker]);
 
   const handleTimerEnd = () => {
     if (intervalRef.current) {
@@ -101,9 +121,9 @@ function Timer({ isActive, timeLimit, currentSpeaker, speakerStats, onComplete, 
 
   const getTimerColor = () => {
     const percentage = (timeRemaining / timeLimit) * 100;
-    if (percentage > 50) return '#4CAF50';
-    if (percentage > 20) return '#FFC107';
-    return '#F44336';
+    if (percentage > 50) return '#4CAF50';  // Green
+    if (percentage > 25) return '#FFC107';  // Amber (changed from 20% to 25%)
+    return '#F44336';  // Red
   };
 
   const handleEndTurn = () => {

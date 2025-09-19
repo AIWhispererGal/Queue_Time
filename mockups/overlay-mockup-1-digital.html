@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Overlay Mockup 1 - Digital Clock Style</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;700&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #2a2a2a;
+            background-image: url('https://picsum.photos/1920/1080');
+            background-size: cover;
+            background-position: center;
+            height: 100vh;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(ellipse at center, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.7) 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .timer-container {
+            text-align: center;
+            transform: translateY(-10%);
+        }
+
+        .speaker-label {
+            font-size: 32px;
+            color: rgba(255,255,255,0.7);
+            margin-bottom: 20px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        .timer-display {
+            font-family: 'Bebas Neue', cursive;
+            font-size: 320px;
+            color: #4ade80;
+            text-shadow:
+                0 0 40px rgba(74, 222, 128, 0.5),
+                0 0 80px rgba(74, 222, 128, 0.3),
+                0 4px 8px rgba(0,0,0,0.5);
+            line-height: 1;
+            letter-spacing: 20px;
+            margin: 40px 0;
+            animation: pulse 1s ease-in-out infinite;
+        }
+
+        .timer-display.warning {
+            color: #fbbf24;
+            text-shadow:
+                0 0 40px rgba(251, 191, 36, 0.5),
+                0 0 80px rgba(251, 191, 36, 0.3),
+                0 4px 8px rgba(0,0,0,0.5);
+        }
+
+        .timer-display.critical {
+            color: #ef4444;
+            text-shadow:
+                0 0 40px rgba(239, 68, 68, 0.8),
+                0 0 80px rgba(239, 68, 68, 0.5),
+                0 4px 8px rgba(0,0,0,0.5);
+            animation: pulseFast 0.5s ease-in-out infinite;
+        }
+
+        .queue-info {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 20px;
+            padding: 20px 60px;
+            margin-top: 40px;
+        }
+
+        .queue-text {
+            font-size: 48px;
+            color: rgba(255,255,255,0.9);
+            font-weight: 700;
+        }
+
+        .queue-number {
+            color: #60a5fa;
+            font-size: 56px;
+            margin: 0 10px;
+        }
+
+        .speaker-name {
+            position: absolute;
+            bottom: 80px;
+            font-size: 64px;
+            color: white;
+            font-weight: 700;
+            text-shadow: 0 4px 8px rgba(0,0,0,0.5);
+        }
+
+        .shortcuts-hint {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.5);
+            padding: 15px 20px;
+            border-radius: 10px;
+            font-size: 14px;
+            color: rgba(255,255,255,0.7);
+        }
+
+        .shortcut-key {
+            display: inline-block;
+            background: rgba(255,255,255,0.2);
+            padding: 2px 8px;
+            border-radius: 4px;
+            margin: 0 4px;
+            font-weight: bold;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+        }
+
+        @keyframes pulseFast {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .paused-indicator {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 120px;
+            color: #fbbf24;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 10px;
+            animation: blink 1s ease-in-out infinite;
+            display: none;
+        }
+
+        .paused .paused-indicator {
+            display: block;
+        }
+
+        .paused .timer-display {
+            opacity: 0.5;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+    </style>
+</head>
+<body>
+    <div class="overlay">
+        <div class="timer-container">
+            <div class="speaker-label">Current Speaker</div>
+            <div class="timer-display" id="timer">03:45</div>
+            <div class="queue-info">
+                <span class="queue-text">Queue:</span>
+                <span class="queue-number">5</span>
+                <span class="queue-text">waiting</span>
+            </div>
+        </div>
+
+        <div class="speaker-name">John Smith</div>
+
+        <div class="paused-indicator">PAUSED</div>
+
+        <div class="shortcuts-hint">
+            <span class="shortcut-key">Space</span> End Turn
+            <span class="shortcut-key">N</span> Next Speaker
+            <span class="shortcut-key">P</span> Pause
+            <span class="shortcut-key">G</span> +15s
+        </div>
+    </div>
+
+    <script>
+        // Demo timer countdown
+        let seconds = 225; // 3:45
+        let paused = false;
+
+        function updateTimer() {
+            if (!paused) {
+                seconds--;
+                if (seconds < 0) seconds = 225;
+            }
+
+            const mins = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            const display = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+            const timer = document.getElementById('timer');
+            timer.textContent = display;
+
+            // Change color based on time
+            timer.className = 'timer-display';
+            if (seconds <= 30) {
+                timer.className = 'timer-display critical';
+            } else if (seconds <= 120) {
+                timer.className = 'timer-display warning';
+            }
+        }
+
+        setInterval(updateTimer, 1000);
+
+        // Toggle pause on P key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'p' || e.key === 'P') {
+                paused = !paused;
+                document.querySelector('.overlay').classList.toggle('paused');
+            }
+        });
+    </script>
+</body>
+</html>
