@@ -1,12 +1,13 @@
 # Queue Time - Zoom App Development Guide
 
 ## 🎉 Current Status
-**PRODUCTION READY!** Professional broadcast-quality queue management with stunning video overlay!
+**PRODUCTION READY!** Professional broadcast-quality queue management with stunning video overlay AND customizable font sizes!
 
 ## ✅ What's Working PERFECTLY
 - Full queue management UI with clean, uncluttered design
 - Professional full-screen overlay with ring progress
 - THREE overlay modes: OFF, MINI (huge timer only), FULL (timer + queue + stats)
+- **NEW: Customizable overlay font sizes with 5 presets!**
 - Custom background image support
 - Keyboard shortcuts (Space/E, N, P, G) ALL WORKING
 - Pause/resume that actually pauses (not resets!)
@@ -14,9 +15,10 @@
 - Stats tracking with proper turn counting (includes current speaker!)
 - Percentage-based color transitions (>50% green, 25-50% amber, <25% red)
 - Smart name truncation
-- Perfect queue spacing with larger fonts (16px)
+- Perfect queue spacing with larger fonts (20px in UI!)
 - Collapsible statistics panel
 - "End Turn" and "End Topic" buttons for proper session management
+- **NEW: Font settings panel for video overlay customization!**
 
 ## 🎊 ENHANCED Overlay Features!
 **Professional broadcast quality with three modes!**
@@ -39,7 +41,7 @@
 
 ### ✅ Keyboard Shortcuts:
 - **Space/E** - End current speaker's turn (with stats tracking!)
-- **N/Enter** - Start next speaker
+- **N** - Start next speaker (Enter removed to avoid conflicts)
 - **P** - Pause/Resume timer (instant visual feedback!)
 - **G** - Add 15 seconds grace period (WORKS!)
 
@@ -49,8 +51,9 @@
 - **Two action buttons** when speaker active:
   - "End Turn" - Same as spacebar, ends current speaker only
   - "End Topic" - Ends speaker AND clears queue for new topic
-- **Larger queue text** (16px) for better readability
-- **Clean Settings panel** with only time limit controls
+- **Larger queue text** (20px) for better readability
+- **Clean Settings panel** with time limit controls
+- **NEW: Font Settings panel** for overlay text customization
 
 ## 🚨 CRITICAL: Ngrok Restart Required!
 **Every time you restart development:**
@@ -87,16 +90,22 @@ git commit -m "message"
    - Find your app → Open
 4. The SDK will connect and show real participants
 
-## 🏆 Latest Improvements (Production Polish)
-- Removed duplicate video overlay toggles
-- Fixed statistics to include current speaker time
-- Added "End Turn" button (purple) for ending speaker
-- Added "End Topic" button (orange) for ending session and clearing queue
-- Made statistics collapsible (click header)
-- Restored single cycling button for overlay modes
-- Increased queue font size to 16px
-- Cleaned up Settings panel
-- Removed redundant UI elements
+## 🏆 Latest Improvements (Ultimate Production Edition!)
+- **Font Customization Panel** - Users can adjust overlay text sizes!
+  - 3 sliders for Labels, Names, and Headers
+  - 5 quick presets (Tiny, Small, Default, Large, Huge)
+  - Settings persist in localStorage
+  - Only affects video overlay, UI stays pristine!
+- **Fixed all production issues:**
+  - Overlay mode transitions instantly (MINI to FULL)
+  - N shortcut works in ALL modes
+  - End Topic always visible with deferred stats clearing
+  - Queue names increased to 20px in UI
+  - Removed Enter shortcut to avoid conflicts
+- **Previous polish:**
+  - Statistics collapsible (click header)
+  - Single cycling button for overlay modes
+  - "End Turn" and "End Topic" session management
 
 ## 💡 Key Features
 - **Queue Management**: Add/remove/reorder speakers

@@ -19,6 +19,13 @@ export class OverlayRenderer {
       ...options
     };
 
+    // Font sizes
+    this.fonts = {
+      labels: 16,    // Labels & Stats
+      names: 22,     // Queue Names
+      headers: 26    // Headers & Current Speaker
+    };
+
     // Load background image
     this.backgroundImage = null;
     this.loadBackgroundImage();
@@ -309,13 +316,13 @@ export class OverlayRenderer {
     this.drawRoundedRect(centerX - boxWidth/2, y, boxWidth, boxHeight, borderRadius);
 
     // Draw label
-    this.ctx.font = '12px sans-serif';
+    this.ctx.font = `${this.fonts.labels}px sans-serif`;
     this.ctx.fillStyle = 'rgba(255,255,255,0.6)';
     this.ctx.textAlign = 'center';
     this.ctx.fillText('SPEAKING', centerX, y + 18);
 
     // Draw name
-    this.ctx.font = 'bold 28px sans-serif';
+    this.ctx.font = `bold ${this.fonts.headers}px sans-serif`;
     this.ctx.fillStyle = this.colors.white;
     this.ctx.fillText(displayName, centerX, y + 42);
   }
@@ -340,13 +347,13 @@ export class OverlayRenderer {
     this.drawRoundedRect(centerX - boxWidth/2, y, boxWidth, boxHeight, borderRadius);
 
     // Draw label
-    this.ctx.font = '12px sans-serif';
+    this.ctx.font = `${this.fonts.labels}px sans-serif`;
     this.ctx.fillStyle = 'rgba(255,255,255,0.6)';
     this.ctx.textAlign = 'center';
     this.ctx.fillText('NEXT', centerX, y + 17);
 
     // Draw name
-    this.ctx.font = 'bold 20px sans-serif';
+    this.ctx.font = `bold ${this.fonts.names}px sans-serif`;
     this.ctx.fillStyle = this.colors.blue;
     this.ctx.fillText(displayName, centerX, y + 38);
   }
@@ -394,7 +401,7 @@ export class OverlayRenderer {
       this.ctx.stroke();
 
       // Draw initials
-      this.ctx.font = 'bold 20px sans-serif';
+      this.ctx.font = `bold ${this.fonts.names}px sans-serif`;
       this.ctx.fillStyle = '#fff';
       this.ctx.textAlign = 'center';
       this.ctx.textBaseline = 'middle';
@@ -402,7 +409,7 @@ export class OverlayRenderer {
 
       // Draw name with truncation
       const truncatedName = this.getDisplayName(person, 18); // Allow 18 chars in queue
-      this.ctx.font = `500 16px sans-serif`;
+      this.ctx.font = `500 ${this.fonts.names}px sans-serif`;
       this.ctx.fillStyle = 'rgba(255,255,255,0.7)';
       this.ctx.textAlign = 'left';
       this.ctx.fillText(truncatedName, x + circleSize + 20, centerY);
@@ -438,7 +445,7 @@ export class OverlayRenderer {
       this.ctx.fillRect(x, y, 150, 55); // Smaller boxes
 
       // Draw label
-      this.ctx.font = '10px sans-serif';
+      this.ctx.font = `${this.fonts.labels}px sans-serif`;
       this.ctx.fillStyle = 'rgba(255,255,255,0.5)';
       this.ctx.textAlign = 'left';
       this.ctx.fillText(panel.label, x + 12, y + 18);
@@ -483,19 +490,19 @@ export class OverlayRenderer {
       const hintY = startY + 25 + (index * 20);
 
       // Draw key
-      this.ctx.font = 'bold 11px monospace';
+      this.ctx.font = `bold ${this.fonts.labels}px monospace`;
       this.ctx.fillStyle = '#fbbf24';
       this.ctx.textAlign = 'left';
       this.ctx.fillText(hint.key, x, hintY);
 
       // Draw colon
-      this.ctx.font = '10px sans-serif';
+      this.ctx.font = `${this.fonts.labels}px sans-serif`;
       this.ctx.fillStyle = 'rgba(255,255,255,0.4)';
       const keyWidth = this.ctx.measureText(hint.key).width;
       this.ctx.fillText(':', x + keyWidth + 2, hintY);
 
       // Draw action
-      this.ctx.font = '9px sans-serif';
+      this.ctx.font = `${this.fonts.labels}px sans-serif`;
       this.ctx.fillStyle = 'rgba(255,255,255,0.7)';
       this.ctx.fillText(hint.action, x + keyWidth + 8, hintY);
     });
