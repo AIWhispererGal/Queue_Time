@@ -6,7 +6,7 @@ import { OverlayRenderer } from '../utils/overlayRenderer';
  * Uses drawImage/clearImage instead of setVirtualForeground
  * Now with enhanced full-screen design including ring progress, queue, and stats
  */
-export function useVideoOverlay(zoomSdk, currentSpeaker, timeRemaining, timeLimit, myUserId, queue = [], setDebugMessage, stats = {}, isPaused = false) {
+export function useVideoOverlay(zoomSdk, currentSpeaker, timeRemaining, timeLimit, myUserId, queue = [], setDebugMessage, stats = {}, isPaused = false, overlayMode = 'full') {
   const intervalRef = useRef(null);
   const canvasRef = useRef(null);
   const lastUpdateRef = useRef(0);
@@ -31,6 +31,11 @@ export function useVideoOverlay(zoomSdk, currentSpeaker, timeRemaining, timeLimi
     }
   }, [isPaused]);
 
+  // Force update when overlay mode changes
+  useEffect(() => {
+    forceUpdateRef.current = true; // Force immediate update when mode changes
+  }, [overlayMode]);
+
   useEffect(() => {
     if (!zoomSdk) {
       // When SDK becomes null (toggle OFF), try to clear any existing overlay
@@ -38,6 +43,16 @@ export function useVideoOverlay(zoomSdk, currentSpeaker, timeRemaining, timeLimi
 
       // Try to clear with the last known SDK instance if we had one
       if (window.lastZoomSdk) {
+        // First try to close rendering context if it was active
+        if (renderingContextActive) {
+          window.lastZoomSdk.closeRenderingContext()
+            .then(() => {
+              console.log('✅ Rendering context closed');
+              setRenderingContextActive(false);
+            })
+            .catch(err => console.log('Could not close rendering context:', err));
+        }
+
         window.lastZoomSdk.clearImage()
           .then(() => {
             console.log('✅ Overlay cleared when toggled OFF');
@@ -204,7 +219,7 @@ export function useVideoOverlay(zoomSdk, currentSpeaker, timeRemaining, timeLimi
       const avgTime = stats.avgTime || '00:00';
       const totalSpeakers = stats.totalSpeakers || queue.length;
 
-      // Draw the enhanced overlay
+      // Draw the enhanced overlay with mode support
       overlayRendererRef.current.drawOverlay({
         currentSpeaker,
         nextSpeaker,
@@ -214,7 +229,7 @@ export function useVideoOverlay(zoomSdk, currentSpeaker, timeRemaining, timeLimi
         isPaused: isPausedRef.current, // Use ref to get current pause state
         stats,
         graceAnimating: graceAnimationRef.current
-      });
+      }, overlayMode);
     };
 
     // Function to update the overlay using drawImage
@@ -343,7 +358,7 @@ export function useVideoOverlay(zoomSdk, currentSpeaker, timeRemaining, timeLimi
           });
       }
     };
-  }, [zoomSdk, currentSpeaker, timeLimit, myUserId, queue, setDebugMessage]); // Removed timeRemaining and renderingContextActive to prevent re-initialization
+  }, [zoomSdk, currentSpeaker, timeLimit, myUserId, queue, setDebugMessage, overlayMode]); // Added overlayMode to trigger update on mode change
 
   return { canvasRef, renderingContextActive };
 }

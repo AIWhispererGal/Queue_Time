@@ -47,6 +47,37 @@
   font-size: 0.875rem;
 }
 
+/* Video overlay toggle in header */
+.overlay-mode-selector-header {
+  display: flex;
+  gap: 0.125rem;
+  background: rgba(255,255,255,0.15);
+  border-radius: 0.375rem;
+  padding: 0.125rem;
+}
+
+.mode-button-header {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.688rem;
+  font-weight: 600;
+  background: transparent;
+  color: rgba(255,255,255,0.9);
+  border: none;
+  border-radius: 0.25rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.mode-button-header:hover {
+  background: rgba(255,255,255,0.2);
+}
+
+.mode-button-header.active {
+  background: rgba(255,255,255,0.95);
+  color: #667eea;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
 .main-layout {
   flex: 1;
   display: flex;

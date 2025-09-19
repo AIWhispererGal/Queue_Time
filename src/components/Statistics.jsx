@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import './Statistics.css';
 
-function Statistics({ speakerStats, participants, onReset }) {
+function Statistics({ speakerStats, participants, onReset, currentSpeaker, timeRemaining, timeLimit }) {
+  const [isCollapsed, setIsCollapsed] = useState(false);
   const formatTime = (seconds) => {
     if (!seconds) return '0:00';
     const mins = Math.floor(seconds / 60);
@@ -10,7 +11,13 @@ function Statistics({ speakerStats, participants, onReset }) {
   };
 
   const getTotalMeetingTime = () => {
-    return Object.values(speakerStats).reduce((total, stat) => total + stat.totalTime, 0);
+    let total = Object.values(speakerStats).reduce((total, stat) => total + stat.totalTime, 0);
+    // Add current speaker's elapsed time if speaking
+    if (currentSpeaker && timeRemaining !== undefined && timeLimit !== undefined) {
+      const elapsed = timeLimit - timeRemaining;
+      total += elapsed;
+    }
+    return total;
   };
 
   const getTotalSpeakers = () => {
@@ -54,9 +61,9 @@ function Statistics({ speakerStats, participants, onReset }) {
 
   return (
     <div className="statistics">
-      <div className="stats-header">
-        <h2>Statistics</h2>
-        <div className="stats-actions">
+      <div className="stats-header" onClick={() => setIsCollapsed(!isCollapsed)} style={{ cursor: 'pointer' }}>
+        <h2>{isCollapsed ? '▶' : '▼'} Statistics</h2>
+        <div className="stats-actions" onClick={(e) => e.stopPropagation()}>
           {getTotalSpeakers() > 0 && (
             <>
               <button className="export-button" onClick={exportToCSV}>
@@ -70,7 +77,7 @@ function Statistics({ speakerStats, participants, onReset }) {
         </div>
       </div>
 
-      {getTotalSpeakers() === 0 ? (
+      {!isCollapsed && (getTotalSpeakers() === 0 ? (
         <div className="no-stats">
           <p>No statistics yet</p>
           <p className="stats-hint">Statistics will appear once speakers start their turns</p>
@@ -136,7 +143,7 @@ function Statistics({ speakerStats, participants, onReset }) {
             </div>
           </div>
         </>
-      )}
+      ))}
     </div>
   );
 }

@@ -166,11 +166,7 @@ function Timer({ isActive, timeLimit, currentSpeaker, speakerStats, onComplete, 
         />
       </div>
 
-      {isActive ? (
-        <button className="timer-button end-turn" onClick={handleEndTurn}>
-          End Turn
-        </button>
-      ) : (
+      {!isActive && (
         <div className="timer-settings">
           <label htmlFor="time-limit">Time Limit:</label>
           <input

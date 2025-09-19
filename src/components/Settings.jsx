@@ -1,7 +1,7 @@
 import React from 'react';
 import './Settings.css';
 
-function Settings({ timeLimit, onTimeLimitChange, videoOverlayEnabled, onVideoOverlayChange }) {
+function Settings({ timeLimit, onTimeLimitChange }) {
   const presets = [
     { label: '30s', value: 30 },
     { label: '1m', value: 60 },
@@ -62,26 +62,8 @@ function Settings({ timeLimit, onTimeLimitChange, videoOverlayEnabled, onVideoOv
         </div>
       </div>
 
-      <div className="settings-section">
-        <label className="settings-label">Video Overlay</label>
-        <div className="toggle-container">
-          <label className="toggle-switch">
-            <input
-              type="checkbox"
-              checked={videoOverlayEnabled}
-              onChange={(e) => onVideoOverlayChange(e.target.checked)}
-            />
-            <span className="toggle-slider"></span>
-          </label>
-          <span className="toggle-label">
-            {videoOverlayEnabled ? 'Timer shows on your video' : 'Timer hidden from video'}
-          </span>
-        </div>
-      </div>
-
       <div className="settings-info">
         <p>💡 <strong>Tip:</strong> Change time limit between speakers</p>
-        <p>📹 Video overlay shows timer & queue on YOUR video feed</p>
       </div>
     </div>
   );

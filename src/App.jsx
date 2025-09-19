@@ -4,7 +4,6 @@ import ParticipantList from './components/ParticipantList';
 import SpeakerQueue from './components/SpeakerQueue';
 import Timer from './components/Timer';
 import Statistics from './components/Statistics';
-import FloatingTimer from './components/FloatingTimer';
 import Settings from './components/Settings';
 import useVideoOverlay from './hooks/useVideoOverlay';
 import './App.css';
@@ -16,17 +15,17 @@ function App() {
   const [speakerStats, setSpeakerStats] = useState({});
   const [timeLimit, setTimeLimit] = useState(120); // 2 minutes default
   const [isZoomConnected, setIsZoomConnected] = useState(false);
-  const [showFloatingTimer, setShowFloatingTimer] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState(120);
   const [myUserId, setMyUserId] = useState(null);
   const [zoomSdkInstance, setZoomSdkInstance] = useState(null);
-  const [videoOverlayEnabled, setVideoOverlayEnabled] = useState(true);
+  const [videoOverlayEnabled, setVideoOverlayEnabled] = useState('full'); // 'off', 'mini', or 'full'
   const [sdkError, setSdkError] = useState(null);
   const [debugInfo, setDebugInfo] = useState('Waiting to initialize...');
   const [overlayDebug, setOverlayDebug] = useState('Overlay not active');
   const [isPaused, setIsPaused] = useState(false);
   const [sessionStartTime] = useState(Date.now());
   const [totalSpeakersCount, setTotalSpeakersCount] = useState(0);
+  const [shouldClearStatsOnNext, setShouldClearStatsOnNext] = useState(false);
 
   // Calculate session stats
   const calculateStats = () => {
@@ -106,17 +105,15 @@ function App() {
 
         case 'n':
         case 'N':
-        case 'Enter':
-          if (e.target.tagName !== 'BUTTON') { // Don't trigger on button press
-            e.preventDefault();
-            // Start next speaker
-            if (queue.length > 0 && !currentSpeaker) {
-              const nextSpeaker = queue[0];
-              setCurrentSpeaker(nextSpeaker);
-              setQueue(queue.slice(1));
-              setTimeRemaining(timeLimit);
-              setTotalSpeakersCount(prev => prev + 1);
-            }
+          // Always prevent default and handle N shortcut (removed Enter)
+          e.preventDefault();
+          // Start next speaker
+          if (queue.length > 0 && !currentSpeaker) {
+            const nextSpeaker = queue[0];
+            setCurrentSpeaker(nextSpeaker);
+            setQueue(queue.slice(1));
+            setTimeRemaining(timeLimit);
+            setTotalSpeakersCount(prev => prev + 1);
           }
           break;
 
@@ -138,7 +135,7 @@ function App() {
 
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [currentSpeaker, queue, timeLimit]);
+  }, [currentSpeaker, queue, timeLimit, timeRemaining, speakerStats]);
 
   useEffect(() => {
     // Inject critical styles for Zoom iframe compatibility
@@ -368,6 +365,12 @@ function App() {
 
   const addToQueue = (participant) => {
     if (!queue.find(p => p.userId === participant.userId)) {
+      // Check if we should clear stats when adding the first speaker for a new topic
+      if (shouldClearStatsOnNext) {
+        setSpeakerStats({});
+        setTotalSpeakersCount(0);
+        setShouldClearStatsOnNext(false);
+      }
       setQueue([...queue, participant]);
     }
   };
@@ -428,9 +431,41 @@ function App() {
     setSpeakerStats({});
   };
 
+  const endTurn = () => {
+    // End current speaker's turn (same as spacebar)
+    if (currentSpeaker) {
+      // Calculate time spoken
+      const timeSpoken = timeLimit - timeRemaining;
+
+      // Update speaker stats
+      setSpeakerStats(prev => ({
+        ...prev,
+        [currentSpeaker.userId]: {
+          name: currentSpeaker.displayName,
+          totalTime: (prev[currentSpeaker.userId]?.totalTime || 0) + timeSpoken,
+          instances: (prev[currentSpeaker.userId]?.instances || 0) + 1
+        }
+      }));
+
+      setCurrentSpeaker(null);
+      setTimeRemaining(timeLimit);
+    }
+  };
+
+  const endTopic = () => {
+    // End current speaker's turn and prepare for new topic
+    if (currentSpeaker) {
+      endTurn(); // End the current turn if there is one
+    }
+    setQueue([]); // Clear the queue
+
+    // Always set flag to clear stats when next speaker is added (deferred clearing)
+    setShouldClearStatsOnNext(true);
+  };
+
   // Use video overlay hook when enabled
   const overlayStatus = useVideoOverlay(
-    videoOverlayEnabled ? zoomSdkInstance : null,
+    videoOverlayEnabled !== 'off' ? zoomSdkInstance : null,
     currentSpeaker,
     timeRemaining,
     timeLimit,
@@ -438,7 +473,8 @@ function App() {
     queue,
     setOverlayDebug,
     calculateStats(),
-    isPaused
+    isPaused,
+    videoOverlayEnabled // pass the mode ('mini' or 'full')
   );
 
   return (
@@ -452,17 +488,16 @@ function App() {
             </span>
           )}
           <button
-            onClick={() => setVideoOverlayEnabled(!videoOverlayEnabled)}
-            className={`btn-small ${videoOverlayEnabled ? 'btn-active' : 'btn-inactive'}`}
-            title="Shows timer on YOUR video for everyone to see"
+            onClick={() => {
+              // Cycle through modes: off -> mini -> full -> off
+              const nextMode = videoOverlayEnabled === 'off' ? 'mini' :
+                               videoOverlayEnabled === 'mini' ? 'full' : 'off';
+              setVideoOverlayEnabled(nextMode);
+            }}
+            className={`btn-small ${videoOverlayEnabled !== 'off' ? 'btn-active' : 'btn-inactive'}`}
+            title="Toggle video overlay mode"
           >
-            My Video Timer: {videoOverlayEnabled ? 'ON' : 'OFF'}
-          </button>
-          <button
-            onClick={() => setShowFloatingTimer(!showFloatingTimer)}
-            className="btn-small"
-          >
-            Floating: {showFloatingTimer ? 'ON' : 'OFF'}
+            Video: {videoOverlayEnabled.toUpperCase()}
           </button>
           {!isZoomConnected && (
             <>
@@ -508,13 +543,13 @@ function App() {
             onStartSpeaking={startSpeaking}
             onClearQueue={clearQueue}
             currentSpeaker={currentSpeaker}
+            onEndTopic={endTopic}
+            onEndTurn={endTurn}
           />
 
           <Settings
             timeLimit={timeLimit}
             onTimeLimitChange={setTimeLimit}
-            videoOverlayEnabled={videoOverlayEnabled}
-            onVideoOverlayChange={setVideoOverlayEnabled}
           />
         </div>
 
@@ -523,26 +558,21 @@ function App() {
             speakerStats={speakerStats}
             participants={participants}
             onReset={resetStats}
+            currentSpeaker={currentSpeaker}
+            timeRemaining={timeRemaining}
+            timeLimit={timeLimit}
           />
         </div>
       </div>
 
-      {showFloatingTimer && (
-        <FloatingTimer
-          currentSpeaker={currentSpeaker}
-          timeRemaining={timeRemaining}
-          timeLimit={timeLimit}
-          speakerStats={speakerStats[currentSpeaker?.userId]}
-        />
-      )}
 
-      {/* Debug Info */}
-      <div className="debug-panel" style={{ maxHeight: '200px', overflowY: 'auto' }}>
+      {/* Debug Info - Commented out but kept for future use */}
+      {/* <div className="debug-panel" style={{ maxHeight: '200px', overflowY: 'auto' }}>
         <div>🔍 DEBUG INFO:</div>
-        <div style={{ backgroundColor: videoOverlayEnabled && currentSpeaker ? '#2e7d32' : '#333', padding: '2px 5px', marginBottom: '2px' }}>
-          Hook Active: {videoOverlayEnabled && currentSpeaker ? '✅ YES' : '❌ NO'}
+        <div style={{ backgroundColor: videoOverlayEnabled !== 'off' && currentSpeaker ? '#2e7d32' : '#333', padding: '2px 5px', marginBottom: '2px' }}>
+          Hook Active: {videoOverlayEnabled !== 'off' && currentSpeaker ? '✅ YES' : '❌ NO'}
         </div>
-        <div>Overlay Enabled: {videoOverlayEnabled ? '✅ YES' : '❌ NO'}</div>
+        <div>Overlay Mode: {videoOverlayEnabled.toUpperCase()}</div>
         <div>Current Speaker: {currentSpeaker ? `🎤 ${currentSpeaker.displayName}` : '❌ None'}</div>
         <div>Time Remaining: {timeRemaining}s</div>
         <div>Rendering Context: {overlayStatus?.renderingContextActive ? '✅ ACTIVE' : '❌ INACTIVE'}</div>
@@ -550,7 +580,6 @@ function App() {
         <div>SDK Connected: {isZoomConnected ? '✅ YES' : '❌ NO'}</div>
         <div>Participants: {participants.length}</div>
         <div>Status: {debugInfo}</div>
-        {/* Stats Debug */}
         <div style={{ borderTop: '1px solid #555', marginTop: '5px', paddingTop: '5px' }}>
           <div>📊 STATS DEBUG:</div>
           {currentSpeaker && (
@@ -562,7 +591,7 @@ function App() {
           )}
         </div>
         {sdkError && <div className="debug-error">Error: {sdkError}</div>}
-      </div>
+      </div> */}
     </div>
   );
 }

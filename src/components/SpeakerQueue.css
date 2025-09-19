@@ -37,6 +37,26 @@ html body #root .queue-header {
   font-size: 0.625rem;
 }
 
+.end-turn-button {
+  background: linear-gradient(135deg, #9c27b0 0%, #673ab7 100%);
+  padding: 0.25rem 0.5rem;
+  font-size: 0.625rem;
+  color: white;
+  border: none;
+  border-radius: 0.25rem;
+  cursor: pointer;
+}
+
+.end-topic-button {
+  background: linear-gradient(135deg, #ff9800 0%, #ff5722 100%);
+  padding: 0.25rem 0.5rem;
+  font-size: 0.625rem;
+  color: white;
+  border: none;
+  border-radius: 0.25rem;
+  cursor: pointer;
+}
+
 .empty-queue {
   flex: 1;
   display: flex;
@@ -103,7 +123,7 @@ html body #root .queue-item {
   display: flex;
   align-items: center;
   gap: 0.375rem;
-  font-size: 0.813rem;
+  font-size: 1.25rem; /* Increased from 16px to 20px */
 }
 
 .queue-participant .participant-name {

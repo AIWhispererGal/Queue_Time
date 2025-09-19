@@ -2,7 +2,7 @@ import React from 'react';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 import './SpeakerQueue.css';
 
-function SpeakerQueue({ queue, onRemove, onReorder, onStartSpeaking, onClearQueue, currentSpeaker }) {
+function SpeakerQueue({ queue, onRemove, onReorder, onStartSpeaking, onClearQueue, currentSpeaker, onEndTopic, onEndTurn }) {
   return (
     <div className="speaker-queue">
       <div className="queue-header">
@@ -13,11 +13,14 @@ function SpeakerQueue({ queue, onRemove, onReorder, onStartSpeaking, onClearQueu
               Start Next Speaker
             </button>
           )}
-          {queue.length > 0 && (
-            <button className="clear-button" onClick={onClearQueue}>
-              Clear Queue
+          {currentSpeaker && (
+            <button className="end-turn-button" onClick={onEndTurn} title="End current speaker's turn">
+              End Turn
             </button>
           )}
+          <button className="end-topic-button" onClick={onEndTopic} title="End topic and prepare for new topic">
+            End Topic
+          </button>
         </div>
       </div>
 

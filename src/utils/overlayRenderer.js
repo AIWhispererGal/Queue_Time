@@ -93,7 +93,7 @@ export class OverlayRenderer {
   /**
    * Draw the full overlay
    */
-  drawOverlay(state) {
+  drawOverlay(state, mode = 'full') {
     const {
       currentSpeaker,
       nextSpeaker,
@@ -115,33 +115,39 @@ export class OverlayRenderer {
     // Draw semi-transparent background
     this.drawBackground();
 
+    // Check if we're in mini mode
+    const isMini = mode === 'mini';
+
     // Draw main timer display with ring
     if (this.options.showRing || this.options.showDigital) {
-      this.drawTimerDisplay(timeRemaining, timeLimit);
+      this.drawTimerDisplay(timeRemaining, timeLimit, isMini);
     }
 
-    // Draw current speaker badge
-    if (currentSpeaker) {
-      this.drawCurrentSpeaker(currentSpeaker);
-    }
+    // Only draw these in full mode
+    if (!isMini) {
+      // Draw current speaker badge
+      if (currentSpeaker) {
+        this.drawCurrentSpeaker(currentSpeaker);
+      }
 
-    // Draw next speaker badge
-    if (nextSpeaker) {
-      this.drawNextSpeaker(nextSpeaker);
-    }
+      // Draw next speaker badge
+      if (nextSpeaker) {
+        this.drawNextSpeaker(nextSpeaker);
+      }
 
-    // Draw queue list
-    if (this.options.showQueue && queue.length > 0) {
-      this.drawQueueList(queue, currentSpeaker);
-    }
+      // Draw queue list
+      if (this.options.showQueue && queue.length > 0) {
+        this.drawQueueList(queue, currentSpeaker);
+      }
 
-    // Draw stats panel
-    if (this.options.showStats && stats) {
-      this.drawStatsPanel(stats);
-    }
+      // Draw stats panel
+      if (this.options.showStats && stats) {
+        this.drawStatsPanel(stats);
+      }
 
-    // Draw keyboard hints (always visible)
-    this.drawKeyboardHints();
+      // Draw keyboard hints (only in full mode)
+      this.drawKeyboardHints();
+    }
 
     // Draw pause overlay
     if (isPaused) {
@@ -183,10 +189,13 @@ export class OverlayRenderer {
   /**
    * Draw timer display with optional ring
    */
-  drawTimerDisplay(timeRemaining, timeLimit) {
+  drawTimerDisplay(timeRemaining, timeLimit, isMini = false) {
     const centerX = this.width / 2;
     const centerY = this.height / 2;
-    const radius = Math.min(this.width, this.height) * 0.25; // Smaller ring
+    // Much larger ring in mini mode (80% of screen height)
+    const radius = isMini ?
+      Math.min(this.width, this.height) * 0.4 :
+      Math.min(this.width, this.height) * 0.25; // Smaller ring in full mode
 
     // Determine color based on percentage remaining
     const percentageRemaining = (timeRemaining / timeLimit) * 100;
@@ -206,20 +215,21 @@ export class OverlayRenderer {
 
     // Draw progress ring
     if (this.options.showRing) {
-      this.drawProgressRing(centerX, centerY, radius, timeRemaining, timeLimit, gradientColors);
+      this.drawProgressRing(centerX, centerY, radius, timeRemaining, timeLimit, gradientColors, isMini);
     }
 
     // Draw digital timer
     if (this.options.showDigital) {
-      this.drawDigitalTimer(centerX, centerY, timeRemaining, color);
+      this.drawDigitalTimer(centerX, centerY, timeRemaining, color, isMini);
     }
   }
 
   /**
    * Draw circular progress ring
    */
-  drawProgressRing(centerX, centerY, radius, timeRemaining, timeLimit, colors) {
-    const lineWidth = 40;
+  drawProgressRing(centerX, centerY, radius, timeRemaining, timeLimit, colors, isMini = false) {
+    // Thicker line in mini mode
+    const lineWidth = isMini ? 60 : 40;
     const startAngle = -Math.PI / 2; // Start at top
     const progress = timeRemaining / timeLimit;
     const endAngle = startAngle + (2 * Math.PI * progress);
@@ -254,13 +264,14 @@ export class OverlayRenderer {
   /**
    * Draw digital timer display
    */
-  drawDigitalTimer(centerX, centerY, timeRemaining, color) {
+  drawDigitalTimer(centerX, centerY, timeRemaining, color, isMini = false) {
     const minutes = Math.floor(timeRemaining / 60);
     const seconds = timeRemaining % 60;
     const timeText = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 
-    // Load custom font or use bold sans-serif - medium size
-    this.ctx.font = 'bold 140px "Orbitron", "Arial Black", sans-serif';
+    // Load custom font or use bold sans-serif - much larger in mini mode
+    const fontSize = isMini ? 200 : 140;
+    this.ctx.font = `bold ${fontSize}px "Orbitron", "Arial Black", sans-serif`;
     this.ctx.textAlign = 'center';
     this.ctx.textBaseline = 'middle';
 
@@ -304,7 +315,7 @@ export class OverlayRenderer {
     this.ctx.fillText('SPEAKING', centerX, y + 18);
 
     // Draw name
-    this.ctx.font = 'bold 24px sans-serif';
+    this.ctx.font = 'bold 28px sans-serif';
     this.ctx.fillStyle = this.colors.white;
     this.ctx.fillText(displayName, centerX, y + 42);
   }
@@ -383,7 +394,7 @@ export class OverlayRenderer {
       this.ctx.stroke();
 
       // Draw initials
-      this.ctx.font = 'bold 16px sans-serif';
+      this.ctx.font = 'bold 20px sans-serif';
       this.ctx.fillStyle = '#fff';
       this.ctx.textAlign = 'center';
       this.ctx.textBaseline = 'middle';
@@ -391,7 +402,7 @@ export class OverlayRenderer {
 
       // Draw name with truncation
       const truncatedName = this.getDisplayName(person, 18); // Allow 18 chars in queue
-      this.ctx.font = `500 12px sans-serif`;
+      this.ctx.font = `500 16px sans-serif`;
       this.ctx.fillStyle = 'rgba(255,255,255,0.7)';
       this.ctx.textAlign = 'left';
       this.ctx.fillText(truncatedName, x + circleSize + 20, centerY);
@@ -445,9 +456,9 @@ export class OverlayRenderer {
   drawKeyboardHints() {
     // Position at bottom right, aligned with stats panel
     const x = this.width - 200; // Same x as stats panel
-    const startY = this.height - 120; // Bottom area
+    const startY = this.height - 140; // Bottom area
 
-    // Compact vertical layout
+    // Vertical layout - one per line
     const hints = [
       { key: 'SPACE', action: 'End Turn' },
       { key: 'N', action: 'Next' },
@@ -459,7 +470,7 @@ export class OverlayRenderer {
     this.ctx.fillStyle = 'rgba(0,0,0,0.4)';
     this.ctx.strokeStyle = 'rgba(255,255,255,0.1)';
     this.ctx.lineWidth = 1;
-    this.drawRoundedRect(x - 10, startY - 10, 180, 100, 8);
+    this.drawRoundedRect(x - 10, startY - 10, 180, 120, 8);
 
     // Draw title
     this.ctx.font = '10px sans-serif';
@@ -467,29 +478,26 @@ export class OverlayRenderer {
     this.ctx.textAlign = 'left';
     this.ctx.fillText('KEYBOARD', x, startY + 5);
 
-    // Draw hints in a 2x2 grid
+    // Draw hints vertically - one per line
     hints.forEach((hint, index) => {
-      const col = index % 2;
-      const row = Math.floor(index / 2);
-      const hintX = x + (col * 85);
-      const hintY = startY + 20 + (row * 30);
+      const hintY = startY + 25 + (index * 20);
 
       // Draw key
       this.ctx.font = 'bold 11px monospace';
       this.ctx.fillStyle = '#fbbf24';
       this.ctx.textAlign = 'left';
-      this.ctx.fillText(hint.key, hintX, hintY);
+      this.ctx.fillText(hint.key, x, hintY);
 
       // Draw colon
       this.ctx.font = '10px sans-serif';
       this.ctx.fillStyle = 'rgba(255,255,255,0.4)';
       const keyWidth = this.ctx.measureText(hint.key).width;
-      this.ctx.fillText(':', hintX + keyWidth + 2, hintY);
+      this.ctx.fillText(':', x + keyWidth + 2, hintY);
 
       // Draw action
       this.ctx.font = '9px sans-serif';
       this.ctx.fillStyle = 'rgba(255,255,255,0.7)';
-      this.ctx.fillText(hint.action, hintX + keyWidth + 8, hintY);
+      this.ctx.fillText(hint.action, x + keyWidth + 8, hintY);
     });
   }
 
