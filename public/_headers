@@ -1,0 +1,5 @@
+/*
+  X-Content-Type-Options: nosniff
+  Content-Security-Policy: frame-ancestors https://*.zoom.us https://*.zoom.com;
+  Referrer-Policy: strict-origin-when-cross-origin
+  X-Frame-Options: ALLOW-FROM https://*.zoom.us

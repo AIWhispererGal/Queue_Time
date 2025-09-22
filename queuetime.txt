@@ -1,0 +1,32 @@
+Secret Token
+vRMwCqPERmOIWj4guJd-Xg
+
+
+
+
+
+
+JUN 2025 RETIRED ALLEGEDLY
+n22ifM61QoSWAvQoSwgZzg
+
+
+
+
+CLIENTID
+
+
+VITE_ZOOM_CLIENT_ID=1xBb4gweQROthoEcdA40ng
+
+VITE_ZOOM_CLIENT_SECRET=7v1o4mtHby5g3q1ditMSRNuRa2YRPSYY
+
+
+
+
+
+
+(node:47356) electron: Failed to load URL: file:///F:/NightwingDesktop-Portable/web\_interface/index.html?port=3001 with error: ERR\_FILE\_NOT\_FOUND
+
+
+
+
+https://zoom.us/oauth/authorize?response_type=code&client_id=Y8qI4vyVTDK3NufnTPg8Q&redirect_uri=https://queue-time.netlify.app

@@ -1,0 +1,32 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx create-react-app:*)",
+      "Bash(npm create:*)",
+      "Bash(mv:*)",
+      "Bash(rmdir:*)",
+      "Bash(mkdir:*)",
+      "Bash(npm install)",
+      "Bash(npm install:*)",
+      "Bash(npm run dev:*)",
+      "Bash(npx mkcert:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git config:*)",
+      "Bash(pkill:*)",
+      "WebSearch",
+      "WebFetch(domain:appssdk.zoom.us)",
+      "WebFetch(domain:developers.zoom.us)",
+      "WebFetch(domain:marketplace.zoom.us)",
+      "WebFetch(domain:devforum.zoom.us)",
+      "Bash(lsof:*)",
+      "Bash(xargs kill:*)",
+      "Bash(npx ngrok:*)",
+      "Bash(curl:*)",
+      "Bash(awk:*)",
+      "Bash(kill:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

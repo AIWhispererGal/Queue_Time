@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Queue Time - Documentation</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; line-height: 1.6; }
+        h1 { color: #333; }
+        h2 { color: #666; margin-top: 30px; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        h3 { color: #888; }
+        .step { background: #f9f9f9; padding: 15px; margin: 15px 0; border-left: 4px solid #0066cc; }
+        .warning { background: #fff3cd; padding: 15px; border-left: 4px solid #ffc107; margin: 20px 0; }
+        code { background: #f0f0f0; padding: 2px 6px; border-radius: 3px; }
+        img { max-width: 100%; height: auto; }
+    </style>
+</head>
+<body>
+    <h1>Queue Time Documentation</h1>
+    <p>Complete guide for installing, using, and removing Queue Time in Zoom meetings.</p>
+
+    <h2>Installation</h2>
+
+    <div class="step">
+        <h3>Step 1: Add Queue Time to Zoom</h3>
+        <ol>
+            <li>Click the installation link provided or search "Queue Time" in Zoom App Marketplace</li>
+            <li>Click <strong>"Add"</strong> or <strong>"Install"</strong></li>
+            <li>Review permissions and click <strong>"Authorize"</strong></li>
+            <li>Queue Time is now available in your Zoom Apps panel</li>
+        </ol>
+    </div>
+
+    <div class="step">
+        <h3>Step 2: Access During Meetings</h3>
+        <ol>
+            <li>Join or start a Zoom meeting</li>
+            <li>Click the <strong>"Apps"</strong> button in the toolbar</li>
+            <li>Select <strong>"Queue Time"</strong> from your apps</li>
+            <li>The app will open in the side panel</li>
+        </ol>
+    </div>
+
+    <h2>Using Queue Time</h2>
+
+    <h3>Basic Operation</h3>
+    <ol>
+        <li><strong>Add Speakers:</strong> Click participant names to add them to the queue</li>
+        <li><strong>Reorder:</strong> Drag and drop speakers to change order</li>
+        <li><strong>Start:</strong> Click "Start" or press <code>N</code> to begin with first speaker</li>
+        <li><strong>Next Speaker:</strong> Press <code>Space</code> to end turn and advance</li>
+    </ol>
+
+    <h3>Timer Controls</h3>
+    <ul>
+        <li><strong>Set Time Limit:</strong> Use the Settings panel (30s, 1m, 2m, 5m, or custom)</li>
+        <li><strong>Pause/Resume:</strong> Press <code>P</code> or click pause button</li>
+        <li><strong>Grace Period:</strong> Press <code>G</code> to add 15 seconds</li>
+        <li><strong>End Turn:</strong> Press <code>Space</code> or <code>E</code></li>
+    </ul>
+
+    <h3>Video Overlay Modes</h3>
+    <p>Click the overlay button to cycle through:</p>
+    <ul>
+        <li><strong>OFF:</strong> No overlay on video</li>
+        <li><strong>MINI:</strong> Large timer only</li>
+        <li><strong>FULL:</strong> Timer, queue, stats, and keyboard hints</li>
+    </ul>
+
+    <div class="warning">
+        <strong>Note:</strong> Video overlay requires a supported Zoom client version and may not be available in all meeting types.
+    </div>
+
+    <h3>Keyboard Shortcuts</h3>
+    <table style="width: 100%; border-collapse: collapse;">
+        <tr style="background: #f0f0f0;">
+            <th style="padding: 10px; text-align: left;">Key</th>
+            <th style="padding: 10px; text-align: left;">Action</th>
+        </tr>
+        <tr>
+            <td style="padding: 10px; border-top: 1px solid #ddd;"><code>Space</code> / <code>E</code></td>
+            <td style="padding: 10px; border-top: 1px solid #ddd;">End current turn</td>
+        </tr>
+        <tr>
+            <td style="padding: 10px; border-top: 1px solid #ddd;"><code>N</code></td>
+            <td style="padding: 10px; border-top: 1px solid #ddd;">Next speaker (start if none active)</td>
+        </tr>
+        <tr>
+            <td style="padding: 10px; border-top: 1px solid #ddd;"><code>P</code></td>
+            <td style="padding: 10px; border-top: 1px solid #ddd;">Pause/Resume timer</td>
+        </tr>
+        <tr>
+            <td style="padding: 10px; border-top: 1px solid #ddd;"><code>G</code></td>
+            <td style="padding: 10px; border-top: 1px solid #ddd;">Add 15 seconds grace period</td>
+        </tr>
+    </table>
+
+    <h2>Statistics Panel</h2>
+    <p>Click "Statistics" header to expand/collapse. Shows:</p>
+    <ul>
+        <li>Total session time</li>
+        <li>Number of turns taken</li>
+        <li>Individual speaker statistics</li>
+        <li>Average time per speaker</li>
+    </ul>
+
+    <h2>Advanced Features</h2>
+
+    <h3>End Turn vs End Topic</h3>
+    <ul>
+        <li><strong>End Turn:</strong> Moves to next speaker, keeps queue and stats</li>
+        <li><strong>End Topic:</strong> Clears queue for new discussion topic</li>
+    </ul>
+
+    <h3>Queue Management</h3>
+    <ul>
+        <li>Click the X next to any name to remove from queue</li>
+        <li>Drag names to reorder</li>
+        <li>Current speaker appears at top with green highlight</li>
+        <li>Queue shows remaining speakers in order</li>
+    </ul>
+
+    <h2>Removing Queue Time</h2>
+
+    <h3>Temporary Removal (Close App)</h3>
+    <ol>
+        <li>Click the X in the app panel during meeting</li>
+        <li>App closes but remains installed</li>
+    </ol>
+
+    <h3>Complete Uninstall</h3>
+    <ol>
+        <li>Go to <a href="https://zoom.us/profile/apps">zoom.us/profile/apps</a></li>
+        <li>Find "Queue Time" in your installed apps</li>
+        <li>Click <strong>"Remove"</strong></li>
+        <li>Confirm removal</li>
+    </ol>
+
+    <h2>Troubleshooting</h2>
+
+    <h3>App Not Loading</h3>
+    <ul>
+        <li>Ensure you're in an active meeting</li>
+        <li>Try refreshing the Apps panel</li>
+        <li>Restart Zoom client if needed</li>
+    </ul>
+
+    <h3>Overlay Not Visible</h3>
+    <ul>
+        <li>Check overlay mode (should be MINI or FULL)</li>
+        <li>Ensure a speaker is active</li>
+        <li>Some Zoom versions may not support overlay</li>
+    </ul>
+
+    <h2>Privacy & Security</h2>
+    <p>Queue Time:</p>
+    <ul>
+        <li>Does NOT store any meeting or user data</li>
+        <li>Does NOT record or transmit information</li>
+        <li>Operates entirely within your Zoom client</li>
+        <li>No account or sign-up required</li>
+    </ul>
+
+    <h2>Support</h2>
+    <p>Need help? Visit our <a href="support.html">support page</a> or email mgallagh@gmail.com</p>
+
+    <hr style="margin-top: 50px;">
+    <p style="text-align: center; color: #999;">Queue Time - Fair speaking time for everyone</p>
+</body>
+</html>
