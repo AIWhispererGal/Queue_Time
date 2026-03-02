@@ -4,9 +4,9 @@
   "description": "Manage speaker queues and track speaking time in Zoom meetings",
   "developer": {
     "name": "Michelle Gallagher",
-    "website_url": "https://queuetime.netlify.app",
-    "privacy_policy_url": "https://queuetime.netlify.app/privacy-policy.html",
-    "terms_of_use_url": "https://queuetime.netlify.app/terms-of-service.html"
+    "website_url": "https://queue-time.netlify.app",
+    "privacy_policy_url": "https://queue-time.netlify.app/privacy-policy.html",
+    "terms_of_use_url": "https://queue-time.netlify.app/terms-of-service.html"
   },
   "app_type": "zoomapp",
   "scopes": [
@@ -22,9 +22,9 @@
     "in_client": true,
     "supports_breakout_rooms": false
   },
-  "home_url": "https://queuetime.netlify.app",
+  "home_url": "https://queue-time.netlify.app",
   "redirect_urls": [
-    "https://queuetime.netlify.app/auth"
+    "https://queue-time.netlify.app/auth"
   ],
   "context": {
     "in_meeting": true,
