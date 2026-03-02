@@ -62,6 +62,21 @@ html body #root .queue-header {
   cursor: pointer;
 }
 
+.add-hands-button {
+  background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%);
+  padding: 0.25rem 0.5rem;
+  font-size: 0.625rem;
+  color: white;
+  border: none;
+  border-radius: 0.25rem;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.add-hands-button:hover {
+  background: linear-gradient(135deg, #ffb300 0%, #fb8c00 100%);
+}
+
 .end-topic-button {
   background: linear-gradient(135deg, #ff9800 0%, #ff5722 100%);
   padding: 0.25rem 0.5rem;

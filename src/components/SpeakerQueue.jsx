@@ -2,7 +2,7 @@ import React, { memo } from 'react';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import './SpeakerQueue.css';
 
-const SpeakerQueue = memo(function SpeakerQueue({ queue, onRemove, onReorder, onStartSpeaking, onClearQueue, currentSpeaker, onEndTopic, onEndTurn, onAddGracePeriod }) {
+const SpeakerQueue = memo(function SpeakerQueue({ queue, onRemove, onReorder, onStartSpeaking, onClearQueue, currentSpeaker, onEndTopic, onEndTurn, onAddGracePeriod, onAddAllHandRaises, handRaisesCount = 0 }) {
   return (
     <div className="speaker-queue">
       <div className="queue-header">
@@ -22,6 +22,11 @@ const SpeakerQueue = memo(function SpeakerQueue({ queue, onRemove, onReorder, on
                 End Turn
               </button>
             </>
+          )}
+          {handRaisesCount > 0 && (
+            <button className="add-hands-button" onClick={onAddAllHandRaises} title="Add all raised hands to queue">
+              Add Hands ({handRaisesCount})
+            </button>
           )}
           <button className="end-topic-button" onClick={onEndTopic} title="End topic and prepare for new topic">
             End Topic

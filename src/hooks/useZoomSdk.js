@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import zoomSdk from '@zoom/appssdk';
 
 /**
@@ -13,6 +13,8 @@ function useZoomSdk() {
   const [sdkError, setSdkError] = useState(null);
   const [debugInfo, setDebugInfo] = useState('Waiting to initialize...');
   const [contextType, setContextType] = useState(null); // 'meeting' or 'webinar'
+  const [handRaises, setHandRaises] = useState([]);
+  const handRaisesRef = useRef([]);
 
   const initializeZoomApp = useCallback(async () => {
     setDebugInfo('Starting SDK initialization...');
@@ -30,6 +32,8 @@ function useZoomSdk() {
           'onConnect',
           'onMessage',
           'onReaction',
+          'onFeedbackReaction',
+          'onRemoveFeedbackReaction',
           'runRenderingContext',
           'closeRenderingContext',
           'drawImage',
@@ -136,6 +140,38 @@ function useZoomSdk() {
         });
       } catch (e) {
         // Could not register onMessage
+      }
+
+      // Hand raise detection (meetings only — SDK error 10128 in webinars)
+      try {
+        await zoomSdk.onFeedbackReaction((event) => {
+          if (event.feedback === 'raiseHand') {
+            const userId = event.participantUUID || event.participantId || event.userId;
+            if (!userId) return;
+            setHandRaises(prev => {
+              if (prev.some(h => h.userId === userId)) return prev;
+              const next = [...prev, { userId, timestamp: Date.now() }];
+              handRaisesRef.current = next;
+              return next;
+            });
+          }
+        });
+      } catch (e) {
+        // onFeedbackReaction not available (webinar or unsupported)
+      }
+
+      try {
+        await zoomSdk.onRemoveFeedbackReaction((event) => {
+          const userId = event.participantUUID || event.participantId || event.userId;
+          if (!userId) return;
+          setHandRaises(prev => {
+            const next = prev.filter(h => h.userId !== userId);
+            handRaisesRef.current = next;
+            return next;
+          });
+        });
+      } catch (e) {
+        // onRemoveFeedbackReaction not available
       }
 
       // Try to get initial participants - but don't fail if we can't
@@ -258,6 +294,11 @@ function useZoomSdk() {
     return () => clearTimeout(timer);
   }, [initializeZoomApp]);
 
+  const clearHandRaises = useCallback(() => {
+    setHandRaises([]);
+    handRaisesRef.current = [];
+  }, []);
+
   return {
     participants,
     setParticipants,
@@ -266,7 +307,9 @@ function useZoomSdk() {
     zoomSdkInstance,
     sdkError,
     debugInfo,
-    contextType
+    contextType,
+    handRaises,
+    clearHandRaises
   };
 }
 

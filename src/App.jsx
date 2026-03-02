@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import ParticipantList from './components/ParticipantList';
 import SpeakerQueue from './components/SpeakerQueue';
 import Timer from './components/Timer';
@@ -21,7 +21,9 @@ function App() {
     zoomSdkInstance,
     sdkError,
     debugInfo,
-    contextType
+    contextType,
+    handRaises,
+    clearHandRaises
   } = useZoomSdk();
 
   // App-specific state
@@ -205,8 +207,30 @@ function App() {
     // End current speaker's turn and prepare for new topic
     endTurn();
     setQueue([]);
+    clearHandRaises();
     setShouldClearStatsOnNext(true);
-  }, [endTurn]);
+  }, [endTurn, clearHandRaises]);
+
+  // Auto-queue panelists (host/co-host) when they raise their hand
+  useEffect(() => {
+    if (handRaises.length === 0) return;
+    handRaises.forEach(({ userId }) => {
+      const participant = participants.find(p => p.userId === userId);
+      if (participant && participant.isPanelist) {
+        addToQueue(participant);
+      }
+    });
+  }, [handRaises, participants, addToQueue]);
+
+  const addAllHandRaises = useCallback(() => {
+    handRaises.forEach(({ userId }) => {
+      const participant = participants.find(p => p.userId === userId);
+      if (participant) {
+        addToQueue(participant);
+      }
+    });
+    clearHandRaises();
+  }, [handRaises, participants, addToQueue, clearHandRaises]);
 
   const addGracePeriod = useCallback((seconds = TIMER_DEFAULTS.GRACE_PERIOD_LONG) => {
     setCurrentSpeaker(speaker => {
@@ -274,6 +298,7 @@ function App() {
             speakerStats={speakerStats}
             currentSpeaker={currentSpeaker}
             queue={queue}
+            handRaises={handRaises}
           />
         </div>
 
@@ -300,6 +325,8 @@ function App() {
             onEndTopic={endTopic}
             onEndTurn={endTurn}
             onAddGracePeriod={addGracePeriod}
+            onAddAllHandRaises={addAllHandRaises}
+            handRaisesCount={handRaises.length}
           />
 
           <Settings

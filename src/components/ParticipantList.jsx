@@ -2,7 +2,7 @@ import React, { useState, memo } from 'react';
 import { formatTime } from '../utils/formatTime';
 import './ParticipantList.css';
 
-const ParticipantList = memo(function ParticipantList({ participants, onAddToQueue, speakerStats, currentSpeaker, queue }) {
+const ParticipantList = memo(function ParticipantList({ participants, onAddToQueue, speakerStats, currentSpeaker, queue, handRaises = [] }) {
   const [showManualAdd, setShowManualAdd] = useState(false);
   const [manualName, setManualName] = useState('');
 
@@ -102,6 +102,11 @@ const ParticipantList = memo(function ParticipantList({ participants, onAddToQue
                     {participant.role === 'panelist' && (
                       <span className="panelist-badge" title="Panelist">●</span>
                     )}
+                    {(() => {
+                      const handRaiseIndex = handRaises.findIndex(h => h.userId === participant.userId);
+                      if (handRaiseIndex === -1) return null;
+                      return <span className="hand-raise-badge" title="Hand raised">{'\u270B'}{handRaiseIndex + 1}</span>;
+                    })()}
                   </div>
                   {stats && (
                     <div className="participant-stats">

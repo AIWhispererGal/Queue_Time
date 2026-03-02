@@ -167,6 +167,21 @@ html body #root .avatar-placeholder {
   margin-left: 0.125rem;
 }
 
+.hand-raise-badge {
+  background: #fff8e1;
+  color: #f57f17;
+  font-size: 0.625rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 0.25rem;
+  border-radius: 0.25rem;
+  margin-left: 0.25rem;
+  border: 1px solid #ffecb3;
+  line-height: 1.2;
+}
+
 .participant-stats {
   display: flex;
   gap: 0.5rem;
