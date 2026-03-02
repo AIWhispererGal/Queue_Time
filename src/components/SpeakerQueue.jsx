@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 import './SpeakerQueue.css';
 
-function SpeakerQueue({ queue, onRemove, onReorder, onStartSpeaking, onClearQueue, currentSpeaker, onEndTopic, onEndTurn }) {
+const SpeakerQueue = memo(function SpeakerQueue({ queue, onRemove, onReorder, onStartSpeaking, onClearQueue, currentSpeaker, onEndTopic, onEndTurn, onAddGracePeriod }) {
   return (
     <div className="speaker-queue">
       <div className="queue-header">
@@ -14,9 +14,14 @@ function SpeakerQueue({ queue, onRemove, onReorder, onStartSpeaking, onClearQueu
             </button>
           )}
           {currentSpeaker && (
-            <button className="end-turn-button" onClick={onEndTurn} title="End current speaker's turn">
-              End Turn
-            </button>
+            <>
+              <button className="grace-button" onClick={() => onAddGracePeriod(30)} title="Add 30 seconds (G key for +15s)">
+                +30s
+              </button>
+              <button className="end-turn-button" onClick={onEndTurn} title="End current speaker's turn">
+                End Turn
+              </button>
+            </>
           )}
           <button className="end-topic-button" onClick={onEndTopic} title="End topic and prepare for new topic">
             End Topic
@@ -93,6 +98,6 @@ function SpeakerQueue({ queue, onRemove, onReorder, onStartSpeaking, onClearQueu
       )}
     </div>
   );
-}
+});
 
 export default SpeakerQueue;

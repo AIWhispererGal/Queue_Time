@@ -53,10 +53,9 @@ export class OverlayRenderer {
     img.src = '/background.jpg';
     img.onload = () => {
       this.backgroundImage = img;
-      console.log('Background image loaded successfully');
     };
     img.onerror = () => {
-      console.log('Failed to load background image, using gradient fallback');
+      // Using gradient fallback
     };
   }
 

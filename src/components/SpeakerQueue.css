@@ -37,6 +37,21 @@ html body #root .queue-header {
   font-size: 0.625rem;
 }
 
+.grace-button {
+  background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
+  padding: 0.25rem 0.5rem;
+  font-size: 0.625rem;
+  color: white;
+  border: none;
+  border-radius: 0.25rem;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.grace-button:hover {
+  background: linear-gradient(135deg, #1976D2 0%, #1565C0 100%);
+}
+
 .end-turn-button {
   background: linear-gradient(135deg, #9c27b0 0%, #673ab7 100%);
   padding: 0.25rem 0.5rem;

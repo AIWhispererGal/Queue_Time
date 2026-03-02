@@ -1,15 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, memo } from 'react';
+import { formatTime } from '../utils/formatTime';
 import './ParticipantList.css';
 
-function ParticipantList({ participants, onAddToQueue, speakerStats, currentSpeaker, queue }) {
+const ParticipantList = memo(function ParticipantList({ participants, onAddToQueue, speakerStats, currentSpeaker, queue }) {
   const [showManualAdd, setShowManualAdd] = useState(false);
   const [manualName, setManualName] = useState('');
-  const formatTime = (seconds) => {
-    if (!seconds) return '0:00';
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
 
   const isInQueue = (participant) => {
     return queue.some(p => p.userId === participant.userId);
@@ -61,7 +56,7 @@ function ParticipantList({ participants, onAddToQueue, speakerStats, currentSpea
               placeholder="Enter name..."
               value={manualName}
               onChange={(e) => setManualName(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleManualAdd()}
+              onKeyDown={(e) => e.key === 'Enter' && handleManualAdd()}
               autoFocus
             />
             <button
@@ -131,6 +126,6 @@ function ParticipantList({ participants, onAddToQueue, speakerStats, currentSpea
       </div>
     </div>
   );
-}
+});
 
 export default ParticipantList;
