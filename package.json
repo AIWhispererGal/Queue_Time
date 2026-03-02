@@ -12,9 +12,9 @@
     "test:run": "vitest run"
   },
   "dependencies": {
+    "@hello-pangea/dnd": "^18.0.1",
     "@zoom/appssdk": "^0.16.0",
     "react": "^19.1.1",
-    "react-beautiful-dnd": "^13.1.1",
     "react-dom": "^19.1.1",
     "swarm-tickets": "file:../ClaudeFlowTicketTracker"
   },
