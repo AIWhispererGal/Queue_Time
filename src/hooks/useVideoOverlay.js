@@ -128,7 +128,7 @@ export function useVideoOverlay(zoomSdk, currentSpeaker, timeRemaining, timeLimi
           try {
             await zoomSdk.clearImage();
             if (setDebugMessage) setDebugMessage('Overlay cleared');
-          } catch (err) {
+          } catch {
             // Try drawing a transparent overlay as fallback
             try {
               const clearCanvas = document.createElement('canvas');
@@ -144,7 +144,7 @@ export function useVideoOverlay(zoomSdk, currentSpeaker, timeRemaining, timeLimi
                 zIndex: 3
               });
               if (setDebugMessage) setDebugMessage('Overlay cleared (transparent)');
-            } catch (fallbackErr) {
+            } catch {
               if (setDebugMessage) setDebugMessage('Clear overlay failed');
             }
           }
@@ -185,9 +185,6 @@ export function useVideoOverlay(zoomSdk, currentSpeaker, timeRemaining, timeLimi
     // Function to draw the timer overlay using new renderer
     const drawTimerOverlay = () => {
       const nextSpeaker = queue && queue.length > 0 ? queue[0] : null;
-      const sessionTime = stats.sessionTime || '00:00';
-      const avgTime = stats.avgTime || '00:00';
-      const totalSpeakers = stats.totalSpeakers || queue.length;
 
       overlayRendererRef.current.drawOverlay({
         currentSpeaker,
@@ -227,7 +224,7 @@ export function useVideoOverlay(zoomSdk, currentSpeaker, timeRemaining, timeLimi
             });
             if (setDebugMessage) setDebugMessage(`Timer: ${Math.floor(timeRemainingRef.current / 60)}:${(timeRemainingRef.current % 60).toString().padStart(2, '0')}`);
             return;
-          } catch (error3) {
+          } catch {
             // Try base64 fallbacks
           }
 
@@ -243,7 +240,7 @@ export function useVideoOverlay(zoomSdk, currentSpeaker, timeRemaining, timeLimi
             successfulMethodRef.current = 'base64';
             if (setDebugMessage) setDebugMessage(`Timer active`);
             return;
-          } catch (error2) {
+          } catch {
             // Try without prefix
           }
 
@@ -260,7 +257,7 @@ export function useVideoOverlay(zoomSdk, currentSpeaker, timeRemaining, timeLimi
             successfulMethodRef.current = 'base64clean';
             if (setDebugMessage) setDebugMessage(`Timer active`);
             return;
-          } catch (error2b) {
+          } catch {
             // All methods failed
           }
 

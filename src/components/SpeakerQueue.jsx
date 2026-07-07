@@ -2,7 +2,7 @@ import React, { memo } from 'react';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import './SpeakerQueue.css';
 
-const SpeakerQueue = memo(function SpeakerQueue({ queue, onRemove, onReorder, onStartSpeaking, onClearQueue, currentSpeaker, onEndTopic, onEndTurn, onAddGracePeriod, onAddAllHandRaises, handRaisesCount = 0 }) {
+const SpeakerQueue = memo(function SpeakerQueue({ queue, onRemove, onReorder, onStartSpeaking, currentSpeaker, onEndTopic, onEndTurn, onAddGracePeriod, onAddAllHandRaises, handRaisesCount = 0 }) {
   return (
     <div className="speaker-queue">
       <div className="queue-header">

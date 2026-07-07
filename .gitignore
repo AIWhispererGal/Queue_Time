@@ -65,3 +65,9 @@ coordination/orchestration/*
 claude-flow
 # Removed Windows wrapper files per user request
 hive-mind-prompt-*.txt
+
+# Generated agent-review / ticket scratch output
+code-review/
+docs/code-review/
+ticket-backups/
+.claude/checkpoints/

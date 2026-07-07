@@ -15,12 +15,13 @@ function useZoomSdk() {
   const [contextType, setContextType] = useState(null); // 'meeting' or 'webinar'
   const [handRaises, setHandRaises] = useState([]);
   const handRaisesRef = useRef([]);
+  const myUserIdRef = useRef(null);
 
   const initializeZoomApp = useCallback(async () => {
     setDebugInfo('Starting SDK initialization...');
     try {
       // Configure SDK with event-based capabilities that work without special permissions
-      const configResponse = await zoomSdk.config({
+      await zoomSdk.config({
         capabilities: [
           'getMeetingContext',
           'getWebinarContext',
@@ -56,6 +57,7 @@ function useZoomSdk() {
       try {
         const context = await zoomSdk.getRunningContext();
         setMyUserId(context.userId);
+        myUserIdRef.current = context.userId;
 
         // Detect if we're in a webinar or meeting
         if (context.context === 'inWebinar') {
@@ -71,7 +73,7 @@ function useZoomSdk() {
           setContextType('unknown');
           setDebugInfo(`Connected as user: ${context.userId}`);
         }
-      } catch (e) {
+      } catch {
         // Could not get running context
       }
 
@@ -88,7 +90,7 @@ function useZoomSdk() {
             setDebugInfo(`Connected to meeting: ${contextData.meetingID}`);
           }
         }
-      } catch (e) {
+      } catch {
         // Could not get context
       }
 
@@ -105,7 +107,7 @@ function useZoomSdk() {
               displayName: p.displayName || p.screenName || p.userName || 'Unknown User',
               avatar: p.avatar || null,
               role: p.role || (p.isHost ? 'host' : 'participant'),
-              isCurrentUser: p.participantUUID === myUserId || p.userId === myUserId,
+              isCurrentUser: p.participantUUID === myUserIdRef.current || p.userId === myUserIdRef.current,
               isPanelist: p.role === 'panelist' || p.role === 'host' || p.role === 'coHost'
             }));
 
@@ -117,7 +119,7 @@ function useZoomSdk() {
             setParticipants(visibleParticipants);
           }
         });
-      } catch (e) {
+      } catch {
         // Could not register onParticipantChange
       }
 
@@ -129,16 +131,16 @@ function useZoomSdk() {
             setDebugInfo('Meeting ended');
           }
         });
-      } catch (e) {
+      } catch {
         // Could not register onMeeting
       }
 
       // Listen for messages (sometimes used for participant updates)
       try {
-        await zoomSdk.onMessage((event) => {
+        await zoomSdk.onMessage(() => {
           // Message event received
         });
-      } catch (e) {
+      } catch {
         // Could not register onMessage
       }
 
@@ -156,7 +158,7 @@ function useZoomSdk() {
             });
           }
         });
-      } catch (e) {
+      } catch {
         // onFeedbackReaction not available (webinar or unsupported)
       }
 
@@ -170,7 +172,7 @@ function useZoomSdk() {
             return next;
           });
         });
-      } catch (e) {
+      } catch {
         // onRemoveFeedbackReaction not available
       }
 
@@ -182,14 +184,14 @@ function useZoomSdk() {
           // Webinar context: Try getWebinarParticipants
           try {
             participantData = await zoomSdk.getWebinarParticipants();
-          } catch (e) {
+          } catch {
             // getWebinarParticipants failed
           }
         } else {
           // Meeting context: Try getMeetingParticipants
           try {
             participantData = await zoomSdk.getMeetingParticipants();
-          } catch (e) {
+          } catch {
             // getMeetingParticipants failed (expected)
           }
 
@@ -197,7 +199,7 @@ function useZoomSdk() {
           if (!participantData) {
             try {
               participantData = await zoomSdk.listParticipants();
-            } catch (e) {
+            } catch {
               // listParticipants failed
             }
           }
@@ -226,7 +228,7 @@ function useZoomSdk() {
           setParticipants([]); // Start with empty, will populate via events
         }
 
-      } catch (e) {
+      } catch {
         setDebugInfo('Event mode active - participants will appear as they join/leave');
       }
 
@@ -239,6 +241,7 @@ function useZoomSdk() {
 
       // Load mock data for testing
       setMyUserId('1');
+      myUserIdRef.current = '1';
       setParticipants([
         { userId: '1', displayName: 'John Doe (You)', avatar: null, role: 'host', isCurrentUser: true },
         { userId: '2', displayName: 'Jane Smith', avatar: null, role: 'participant' },
@@ -249,7 +252,9 @@ function useZoomSdk() {
         { userId: '7', displayName: 'Mike Wilson', avatar: null, role: 'participant' },
       ]);
     }
-  }, [myUserId]);
+    // Runs once on mount — myUserId is read via myUserIdRef to avoid re-initializing
+    // the SDK (which would re-register every event listener) when the user id resolves.
+  }, []);
 
   // Initialize SDK on mount
   useEffect(() => {
@@ -278,7 +283,7 @@ function useZoomSdk() {
       rules.forEach(rule => {
         try {
           sheet.insertRule(rule, sheet.cssRules.length);
-        } catch (e) {
+        } catch {
           // Failed to insert CSS rule
         }
       });

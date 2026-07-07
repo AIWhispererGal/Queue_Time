@@ -64,7 +64,7 @@ const Statistics = memo(function Statistics({ speakerStats, participants, onRese
 
   const exportToCSV = () => {
     const headers = ['Name', 'Total Speaking Time', 'Number of Turns', 'Average Time per Turn'];
-    const rows = Object.entries(speakerStats).map(([userId, stats]) => {
+    const rows = Object.entries(speakerStats).map(([, stats]) => {
       const avgTime = stats.instances > 0 ? Math.round(stats.totalTime / stats.instances) : 0;
       return [
         stats.name,

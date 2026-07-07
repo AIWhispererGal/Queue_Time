@@ -20,8 +20,6 @@ function App() {
     myUserId,
     zoomSdkInstance,
     sdkError,
-    debugInfo,
-    contextType,
     handRaises,
     clearHandRaises
   } = useZoomSdk();
@@ -33,10 +31,11 @@ function App() {
   const [timeLimit, setTimeLimit] = useState(TIMER_DEFAULTS.TIME_LIMIT);
   const [timeRemaining, setTimeRemaining] = useState(TIMER_DEFAULTS.TIME_LIMIT);
   const [videoOverlayEnabled, setVideoOverlayEnabled] = useState('full'); // 'off', 'mini', or 'full'
-  const [overlayDebug, setOverlayDebug] = useState('Overlay not active');
+  const [, setOverlayDebug] = useState('Overlay not active');
   const [isPaused, setIsPaused] = useState(false);
   const [sessionStartTime] = useState(Date.now());
-  const [totalSpeakersCount, setTotalSpeakersCount] = useState(0);
+  // Counter is updated for future use (e.g. analytics); value is not yet read anywhere.
+  const [, setTotalSpeakersCount] = useState(0);
   const [shouldClearStatsOnNext, setShouldClearStatsOnNext] = useState(false);
 
   // Calculate session stats (memoized to prevent 60+ calculations per minute)
@@ -48,27 +47,6 @@ function App() {
     let currentSpeakerStats = null;
     if (currentSpeaker) {
       const stats = speakerStats[currentSpeaker.userId] || { totalTime: 0, instances: 0 };
-
-      // Calculate average time for this speaker (only from completed turns)
-      const avgSecondsForSpeaker = stats.instances > 0 ?
-        Math.floor(stats.totalTime / stats.instances) : 0;
-
-      // Calculate total speaking time across all speakers (including current elapsed time)
-      let totalSpeakingTime = Object.values(speakerStats).reduce(
-        (total, speaker) => total + speaker.totalTime, 0
-      );
-
-      // Add current speaking time if speaker is active
-      const currentElapsed = Math.max(0, timeLimit - timeRemaining);
-      if (currentElapsed > 0) {
-        totalSpeakingTime += currentElapsed;
-      }
-
-      // Calculate percentage of total time including current
-      const speakerTotal = stats.totalTime + currentElapsed;
-      const percentageOfTotal = totalSpeakingTime > 0 ?
-        Math.round((speakerTotal / totalSpeakingTime) * 100) : 0;
-
       currentSpeakerStats = {
         turnNumber: stats.instances + 1 // This is their Nth turn (counting current)
       };
@@ -78,7 +56,10 @@ function App() {
       sessionTime,
       currentSpeakerStats
     };
-  }, [speakerStats, currentSpeaker, sessionStartTime, totalSpeakersCount, timeLimit, timeRemaining]);
+    // timeRemaining is intentional: it changes every second and drives the
+    // per-second recompute of sessionTime for the live overlay clock.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [speakerStats, currentSpeaker, sessionStartTime, timeRemaining]);
 
   const endTurn = useCallback(() => {
     setCurrentSpeaker(speaker => {
@@ -195,10 +176,6 @@ function App() {
     });
   }, []);
 
-  const clearQueue = useCallback(() => {
-    setQueue([]);
-  }, []);
-
   const resetStats = useCallback(() => {
     setSpeakerStats({});
   }, []);
@@ -242,7 +219,7 @@ function App() {
   }, [timeLimit]);
 
   // Use video overlay hook when enabled
-  const overlayStatus = useVideoOverlay(
+  useVideoOverlay(
     videoOverlayEnabled !== 'off' ? zoomSdkInstance : null,
     currentSpeaker,
     timeRemaining,
@@ -320,7 +297,6 @@ function App() {
             onRemove={removeFromQueue}
             onReorder={reorderQueue}
             onStartSpeaking={startSpeaking}
-            onClearQueue={clearQueue}
             currentSpeaker={currentSpeaker}
             onEndTopic={endTopic}
             onEndTurn={endTurn}
