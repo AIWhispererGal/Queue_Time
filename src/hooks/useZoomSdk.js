@@ -99,25 +99,46 @@ function useZoomSdk() {
       // Primary participant tracking via events
       try {
         await zoomSdk.onParticipantChange((event) => {
-          setDebugInfo(`Participant update: ${event.participants?.length || 0} participants`);
+          // onParticipantChange delivers a DELTA — only the participants who
+          // just joined or left, each tagged with status 'join' | 'leave'. It is
+          // NOT the full roster, so we must merge it into existing state rather
+          // than replace (replacing collapsed the list to just the changed user).
+          if (!event.participants || !Array.isArray(event.participants)) return;
 
-          if (event.participants && Array.isArray(event.participants)) {
-            const formattedParticipants = event.participants.map(p => ({
-              userId: p.participantUUID || p.participantId || p.userId || String(Math.random()),
-              displayName: p.displayName || p.screenName || p.userName || 'Unknown User',
-              avatar: p.avatar || null,
-              role: p.role || (p.isHost ? 'host' : 'participant'),
-              isCurrentUser: p.participantUUID === myUserIdRef.current || p.userId === myUserIdRef.current,
-              isPanelist: p.role === 'panelist' || p.role === 'host' || p.role === 'coHost'
-            }));
+          setDebugInfo(`Participant update: ${event.participants.length} change(s)`);
+
+          setParticipants(prev => {
+            const byId = new Map(prev.map(p => [p.userId, p]));
+
+            for (const p of event.participants) {
+              const userId = p.participantUUID || p.participantId || p.userId;
+              if (!userId) continue;
+
+              if (p.status === 'leave') {
+                byId.delete(userId);
+                continue;
+              }
+
+              // status 'join' (or any non-leave update): add or refresh entry
+              byId.set(userId, {
+                userId,
+                displayName: p.displayName || p.screenName || p.userName || 'Unknown User',
+                avatar: p.avatar || null,
+                role: p.role || (p.isHost ? 'host' : 'participant'),
+                isCurrentUser: userId === myUserIdRef.current,
+                // Zoom event roles are host | cohost | attendee
+                isPanelist: p.role === 'panelist' || p.role === 'host' ||
+                  p.role === 'cohost' || p.role === 'coHost'
+              });
+            }
+
+            const merged = Array.from(byId.values());
 
             // For webinars, only show panelists (speakers) - filter out attendees
-            const visibleParticipants = detectedContextType === 'webinar'
-              ? formattedParticipants.filter(p => p.isPanelist)
-              : formattedParticipants;
-
-            setParticipants(visibleParticipants);
-          }
+            return detectedContextType === 'webinar'
+              ? merged.filter(p => p.isPanelist)
+              : merged;
+          });
         });
       } catch {
         // Could not register onParticipantChange
@@ -207,13 +228,19 @@ function useZoomSdk() {
 
         // Process any participant data we got
         if (participantData && participantData.participants) {
-          const formattedParticipants = participantData.participants.map(p => ({
-            userId: p.participantUUID || p.participantId || p.userId || String(Math.random()),
-            displayName: p.displayName || p.screenName || p.userName || 'Unknown User',
-            avatar: p.avatar || null,
-            role: p.role || (p.isHost ? 'host' : 'participant'),
-            isPanelist: p.role === 'panelist' || p.role === 'host' || p.role === 'coHost'
-          }));
+          const formattedParticipants = participantData.participants.map(p => {
+            const userId = p.participantUUID || p.participantId || p.userId || String(Math.random());
+            return {
+              userId,
+              displayName: p.displayName || p.screenName || p.userName || 'Unknown User',
+              avatar: p.avatar || null,
+              role: p.role || (p.isHost ? 'host' : 'participant'),
+              isCurrentUser: userId === myUserIdRef.current,
+              // Zoom event roles are host | cohost | attendee
+              isPanelist: p.role === 'panelist' || p.role === 'host' ||
+                p.role === 'cohost' || p.role === 'coHost'
+            };
+          });
 
           // For webinars, only show panelists (speakers) - filter out attendees
           const visibleParticipants = detectedContextType === 'webinar'
