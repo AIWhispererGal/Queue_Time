@@ -6,7 +6,7 @@ import { OverlayRenderer } from '../utils/overlayRenderer';
  * Uses drawImage/clearImage instead of setVirtualForeground
  * Now with enhanced full-screen design including ring progress, queue, and stats
  */
-export function useVideoOverlay(zoomSdk, currentSpeaker, timeRemaining, timeLimit, myUserId, queue = [], setDebugMessage, stats = {}, isPaused = false, overlayMode = 'full') {
+export function useVideoOverlay(zoomSdk, currentSpeaker, timeRemaining, timeLimit, myUserId, queue = [], setDebugMessage, stats = {}, isPaused = false, overlayMode = 'full', overlayFontFamily = 'sans-serif') {
   const intervalRef = useRef(null);
   const canvasRef = useRef(null);
   const lastUpdateRef = useRef(0);
@@ -31,10 +31,10 @@ export function useVideoOverlay(zoomSdk, currentSpeaker, timeRemaining, timeLimi
     }
   }, [isPaused]);
 
-  // Force update when overlay mode changes
+  // Force update when overlay mode or font changes
   useEffect(() => {
     forceUpdateRef.current = true;
-  }, [overlayMode]);
+  }, [overlayMode, overlayFontFamily]);
 
   useEffect(() => {
     if (!zoomSdk) {
@@ -127,6 +127,9 @@ export function useVideoOverlay(zoomSdk, currentSpeaker, timeRemaining, timeLimi
 
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
+
+    // Keep the cached renderer's font in sync with the app's font setting.
+    overlayRendererRef.current.fontFamily = overlayFontFamily;
 
     // Push the current canvas to the camera via the drawImage fallback chain
     // (ImageData -> base64 -> base64 without prefix). Returns true on success.
@@ -269,7 +272,7 @@ export function useVideoOverlay(zoomSdk, currentSpeaker, timeRemaining, timeLimi
         zoomSdk.clearImage().catch(() => { /* ignore */ });
       }
     };
-  }, [zoomSdk, currentSpeaker, timeLimit, myUserId, queue, setDebugMessage, overlayMode]);
+  }, [zoomSdk, currentSpeaker, timeLimit, myUserId, queue, setDebugMessage, overlayMode, overlayFontFamily]);
 
   return { canvasRef, renderingContextActive };
 }

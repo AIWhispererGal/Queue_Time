@@ -1,5 +1,6 @@
 import React, { useState, memo } from 'react';
 import { formatTime } from '../utils/formatTime';
+import CollapsibleSection from './CollapsibleSection';
 import './ParticipantList.css';
 
 const ParticipantList = memo(function ParticipantList({ participants, onAddToQueue, speakerStats, currentSpeaker, queue, handRaises = [] }) {
@@ -36,9 +37,7 @@ const ParticipantList = memo(function ParticipantList({ participants, onAddToQue
   };
 
   return (
-    <div className="participant-list">
-      <h2>Participants ({participants.length})</h2>
-
+    <CollapsibleSection className="participant-list" title={`Participants (${participants.length})`}>
       {/* Manual Add Button/Input */}
       <div className="manual-add-container">
         {!showManualAdd ? (
@@ -129,7 +128,7 @@ const ParticipantList = memo(function ParticipantList({ participants, onAddToQue
           );
         })}
       </div>
-    </div>
+    </CollapsibleSection>
   );
 });
 

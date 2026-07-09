@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useCallback } from 'react';
 import { formatTime } from '../utils/formatTime';
+import CollapsibleSection from './CollapsibleSection';
 import {
   TIMER_DEFAULTS,
   AUDIO_FREQUENCIES,
@@ -135,7 +136,7 @@ function Timer({
   }, [onTimeLimitChange]);
 
   return (
-    <div className="timer-container">
+    <CollapsibleSection className="timer-container" title="Timer">
       {currentSpeaker && (
         <div className="current-speaker">
           <div className="speaker-name">{currentSpeaker.displayName}</div>
@@ -184,7 +185,7 @@ function Timer({
           {timeRemaining <= TIMER_DEFAULTS.URGENT_THRESHOLD ? 'Time up!' : `${TIMER_DEFAULTS.WARNING_THRESHOLD} seconds`}
         </div>
       )}
-    </div>
+    </CollapsibleSection>
   );
 }
 

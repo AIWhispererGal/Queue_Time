@@ -1,39 +1,39 @@
 import React, { memo } from 'react';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
+import CollapsibleSection from './CollapsibleSection';
 import './SpeakerQueue.css';
 
 const SpeakerQueue = memo(function SpeakerQueue({ queue, onRemove, onReorder, onStartSpeaking, currentSpeaker, onEndTopic, onEndTurn, onAddGracePeriod, onAddAllHandRaises, handRaisesCount = 0 }) {
-  return (
-    <div className="speaker-queue">
-      <div className="queue-header">
-        <h2>Speaker Queue ({queue.length})</h2>
-        <div className="queue-actions">
-          {queue.length > 0 && !currentSpeaker && (
-            <button className="start-button" onClick={onStartSpeaking}>
-              Start Next Speaker
-            </button>
-          )}
-          {currentSpeaker && (
-            <>
-              <button className="grace-button" onClick={() => onAddGracePeriod(30)} title="Add 30 seconds (G key for +15s)">
-                +30s
-              </button>
-              <button className="end-turn-button" onClick={onEndTurn} title="End current speaker's turn">
-                End Turn
-              </button>
-            </>
-          )}
-          {handRaisesCount > 0 && (
-            <button className="add-hands-button" onClick={onAddAllHandRaises} title="Add all raised hands to queue">
-              Add Hands ({handRaisesCount})
-            </button>
-          )}
-          <button className="end-topic-button" onClick={onEndTopic} title="End topic and prepare for new topic">
-            End Topic
+  const queueActions = (
+    <div className="queue-actions">
+      {queue.length > 0 && !currentSpeaker && (
+        <button className="start-button" onClick={onStartSpeaking}>
+          Start Next Speaker
+        </button>
+      )}
+      {currentSpeaker && (
+        <>
+          <button className="grace-button" onClick={() => onAddGracePeriod(30)} title="Add 30 seconds (G key for +15s)">
+            +30s
           </button>
-        </div>
-      </div>
+          <button className="end-turn-button" onClick={onEndTurn} title="End current speaker's turn">
+            End Turn
+          </button>
+        </>
+      )}
+      {handRaisesCount > 0 && (
+        <button className="add-hands-button" onClick={onAddAllHandRaises} title="Add all raised hands to queue">
+          Add Hands ({handRaisesCount})
+        </button>
+      )}
+      <button className="end-topic-button" onClick={onEndTopic} title="End topic and prepare for new topic">
+        End Topic
+      </button>
+    </div>
+  );
 
+  return (
+    <CollapsibleSection className="speaker-queue" title={`Speaker Queue (${queue.length})`} headerActions={queueActions}>
       {queue.length === 0 ? (
         <div className="empty-queue">
           <p>No speakers in queue</p>
@@ -101,7 +101,7 @@ const SpeakerQueue = memo(function SpeakerQueue({ queue, onRemove, onReorder, on
           </Droppable>
         </DragDropContext>
       )}
-    </div>
+    </CollapsibleSection>
   );
 });
 

@@ -1,10 +1,9 @@
-import React, { useState, useMemo, useCallback, memo } from 'react';
+import React, { useMemo, useCallback, memo } from 'react';
 import { formatTime } from '../utils/formatTime';
+import CollapsibleSection from './CollapsibleSection';
 import './Statistics.css';
 
 const Statistics = memo(function Statistics({ speakerStats, participants, onReset, currentSpeaker, timeRemaining, timeLimit }) {
-  const [isCollapsed, setIsCollapsed] = useState(false);
-
   // Calculate current elapsed time once (memoized)
   const currentElapsed = useMemo(() => {
     if (currentSpeaker && timeRemaining !== undefined && timeLimit !== undefined) {
@@ -99,25 +98,20 @@ const Statistics = memo(function Statistics({ speakerStats, participants, onRese
   const totalSpeakers = useMemo(() => getTotalSpeakers(), [getTotalSpeakers]);
   const avgSpeakingTime = useMemo(() => getAverageSpeakingTime(), [getAverageSpeakingTime]);
 
-  return (
-    <div className="statistics">
-      <div className="stats-header" onClick={() => setIsCollapsed(!isCollapsed)} style={{ cursor: 'pointer' }}>
-        <h2>{isCollapsed ? '▶' : '▼'} Statistics</h2>
-        <div className="stats-actions" onClick={(e) => e.stopPropagation()}>
-          {totalSpeakers > 0 && (
-            <>
-              <button className="export-button" onClick={exportToCSV}>
-                Export CSV
-              </button>
-              <button className="reset-button" onClick={onReset}>
-                Reset
-              </button>
-            </>
-          )}
-        </div>
-      </div>
+  const statsActions = totalSpeakers > 0 ? (
+    <>
+      <button className="export-button" onClick={exportToCSV}>
+        Export CSV
+      </button>
+      <button className="reset-button" onClick={onReset}>
+        Reset
+      </button>
+    </>
+  ) : null;
 
-      {!isCollapsed && (totalSpeakers === 0 ? (
+  return (
+    <CollapsibleSection className="statistics" title="Statistics" defaultCollapsed headerActions={statsActions}>
+      {totalSpeakers === 0 ? (
         <div className="no-stats">
           <p>No statistics yet</p>
           <p className="stats-hint">Statistics will appear once speakers start their turns</p>
@@ -193,8 +187,8 @@ const Statistics = memo(function Statistics({ speakerStats, participants, onRese
             </div>
           </div>
         </>
-      ))}
-    </div>
+      )}
+    </CollapsibleSection>
   );
 });
 

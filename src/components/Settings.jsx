@@ -1,7 +1,9 @@
 import React from 'react';
+import CollapsibleSection from './CollapsibleSection';
+import { FONT_OPTIONS } from '../constants/fonts';
 import './Settings.css';
 
-function Settings({ timeLimit, onTimeLimitChange }) {
+function Settings({ timeLimit, onTimeLimitChange, fontFamily, onFontChange }) {
   const presets = [
     { label: '30s', value: 30 },
     { label: '1m', value: 60 },
@@ -29,9 +31,7 @@ function Settings({ timeLimit, onTimeLimitChange }) {
   };
 
   return (
-    <div className="settings-container">
-      <h3>Settings</h3>
-
+    <CollapsibleSection className="settings-container" title="Settings" defaultCollapsed>
       <div className="settings-section">
         <label className="settings-label">Speaking Time Limit</label>
         <div className="time-presets">
@@ -62,10 +62,28 @@ function Settings({ timeLimit, onTimeLimitChange }) {
         </div>
       </div>
 
+      {onFontChange && (
+        <div className="settings-section">
+          <label className="settings-label">Font</label>
+          <div className="font-presets">
+            {FONT_OPTIONS.map(option => (
+              <button
+                key={option.label}
+                className={`preset-button ${fontFamily === option.css ? 'active' : ''}`}
+                style={{ fontFamily: option.css }}
+                onClick={() => onFontChange(option.css)}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="settings-info">
         <p>💡 <strong>Tip:</strong> Change time limit between speakers</p>
       </div>
-    </div>
+    </CollapsibleSection>
   );
 }
 

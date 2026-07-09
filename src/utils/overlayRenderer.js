@@ -26,6 +26,10 @@ export class OverlayRenderer {
       headers: 26    // Headers & Current Speaker
     };
 
+    // Configurable font family for overlay text (set from the app's font setting).
+    // Mutable so the cached renderer instance can be updated without recreation.
+    this.fontFamily = options.fontFamily || 'sans-serif';
+
     // Load background image
     this.backgroundImage = null;
     this.loadBackgroundImage();
@@ -187,7 +191,7 @@ export class OverlayRenderer {
     // Centered "No current speaker" headline
     this.ctx.textAlign = 'center';
     this.ctx.textBaseline = 'middle';
-    this.ctx.font = `bold ${isMini ? 72 : 54}px sans-serif`;
+    this.ctx.font = `bold ${isMini ? 72 : 54}px ${this.fontFamily}`;
     this.ctx.fillStyle = this.colors.white;
     this.ctx.shadowColor = 'rgba(0,0,0,0.5)';
     this.ctx.shadowBlur = 4;
@@ -198,7 +202,7 @@ export class OverlayRenderer {
 
     // Subtitle hint in full mode
     if (!isMini) {
-      this.ctx.font = `500 ${this.fonts.headers}px sans-serif`;
+      this.ctx.font = `500 ${this.fonts.headers}px ${this.fontFamily}`;
       this.ctx.fillStyle = 'rgba(255,255,255,0.6)';
       this.ctx.fillText('Start a turn to display the timer', centerX, centerY + 60);
     }
@@ -315,7 +319,7 @@ export class OverlayRenderer {
 
     // Load custom font or use bold sans-serif - much larger in mini mode
     const fontSize = isMini ? 200 : 140;
-    this.ctx.font = `bold ${fontSize}px "Orbitron", "Arial Black", sans-serif`;
+    this.ctx.font = `bold ${fontSize}px "Orbitron", ${this.fontFamily}`;
     this.ctx.textAlign = 'center';
     this.ctx.textBaseline = 'middle';
 
@@ -353,13 +357,13 @@ export class OverlayRenderer {
     this.drawRoundedRect(centerX - boxWidth/2, y, boxWidth, boxHeight, borderRadius);
 
     // Draw label
-    this.ctx.font = `${this.fonts.labels}px sans-serif`;
+    this.ctx.font = `${this.fonts.labels}px ${this.fontFamily}`;
     this.ctx.fillStyle = 'rgba(255,255,255,0.6)';
     this.ctx.textAlign = 'center';
     this.ctx.fillText('SPEAKING', centerX, y + 18);
 
     // Draw name
-    this.ctx.font = `bold ${this.fonts.headers}px sans-serif`;
+    this.ctx.font = `bold ${this.fonts.headers}px ${this.fontFamily}`;
     this.ctx.fillStyle = this.colors.white;
     this.ctx.fillText(displayName, centerX, y + 42);
   }
@@ -384,13 +388,13 @@ export class OverlayRenderer {
     this.drawRoundedRect(centerX - boxWidth/2, y, boxWidth, boxHeight, borderRadius);
 
     // Draw label
-    this.ctx.font = `${this.fonts.labels}px sans-serif`;
+    this.ctx.font = `${this.fonts.labels}px ${this.fontFamily}`;
     this.ctx.fillStyle = 'rgba(255,255,255,0.6)';
     this.ctx.textAlign = 'center';
     this.ctx.fillText('NEXT', centerX, y + 17);
 
     // Draw name
-    this.ctx.font = `bold ${this.fonts.names}px sans-serif`;
+    this.ctx.font = `bold ${this.fonts.names}px ${this.fontFamily}`;
     this.ctx.fillStyle = this.colors.blue;
     this.ctx.fillText(displayName, centerX, y + 38);
   }
@@ -438,7 +442,7 @@ export class OverlayRenderer {
       this.ctx.stroke();
 
       // Draw initials
-      this.ctx.font = `bold ${this.fonts.names}px sans-serif`;
+      this.ctx.font = `bold ${this.fonts.names}px ${this.fontFamily}`;
       this.ctx.fillStyle = '#fff';
       this.ctx.textAlign = 'center';
       this.ctx.textBaseline = 'middle';
@@ -446,7 +450,7 @@ export class OverlayRenderer {
 
       // Draw name with truncation
       const truncatedName = this.getDisplayName(person, 18); // Allow 18 chars in queue
-      this.ctx.font = `500 ${this.fonts.names}px sans-serif`;
+      this.ctx.font = `500 ${this.fonts.names}px ${this.fontFamily}`;
       this.ctx.fillStyle = 'rgba(255,255,255,0.7)';
       this.ctx.textAlign = 'left';
       this.ctx.fillText(truncatedName, x + circleSize + 20, centerY);
@@ -457,15 +461,19 @@ export class OverlayRenderer {
    * Draw stats panel on right
    */
   drawStatsPanel(stats) {
-    const x = this.width - 200; // Slightly wider for better layout
-    const startY = this.height / 2 - 100; // More centered
+    const panelWidth = 240; // wider to fit the longer label
+    const padding = 12;
+    const labelLineHeight = 20;
+    const valueHeight = 26;
+    const gap = 14;
+    const x = this.width - panelWidth - 20;
 
     const panels = [];
 
-    // Show current speaker's turn number if available
+    // Show current speaker's turn count if available
     if (stats && stats.currentSpeakerStats && stats.currentSpeakerStats.turnNumber) {
       panels.push(
-        { label: 'SPEAKER TURN', value: `#${stats.currentSpeakerStats.turnNumber}` }
+        { label: "Current Speaker's Turns in Topic", value: `#${stats.currentSpeakerStats.turnNumber}` }
       );
     }
 
@@ -474,24 +482,65 @@ export class OverlayRenderer {
       { label: 'TOPIC TIME', value: (stats && stats.sessionTime) || '00:00' }
     );
 
-    panels.forEach((panel, index) => {
-      const y = startY + (index * 70); // Less spacing
+    // Preserve/restore text alignment so downstream draws aren't affected
+    const prevAlign = this.ctx.textAlign;
+    const prevBaseline = this.ctx.textBaseline;
+    this.ctx.textAlign = 'left';
+    this.ctx.textBaseline = 'top';
 
-      // Draw background box
-      this.ctx.fillStyle = 'rgba(0,0,0,0.4)';
-      this.ctx.fillRect(x, y, 150, 55); // Smaller boxes
-
-      // Draw label
-      this.ctx.font = `${this.fonts.labels}px sans-serif`;
-      this.ctx.fillStyle = 'rgba(255,255,255,0.5)';
-      this.ctx.textAlign = 'left';
-      this.ctx.fillText(panel.label, x + 12, y + 18);
-
-      // Draw value
-      this.ctx.font = 'bold 20px "Courier New", monospace';
-      this.ctx.fillStyle = '#fff';
-      this.ctx.fillText(panel.value, x + 12, y + 40);
+    // Pre-measure wrapped label lines to compute each box height
+    const laidOut = panels.map(panel => {
+      this.ctx.font = `${this.fonts.labels}px ${this.fontFamily}`;
+      const lines = this.wrapText(panel.label, panelWidth - padding * 2);
+      const boxHeight = padding + lines.length * labelLineHeight + 8 + valueHeight + padding;
+      return { ...panel, lines, boxHeight };
     });
+
+    const totalHeight = laidOut.reduce((h, p) => h + p.boxHeight, 0) + (laidOut.length - 1) * gap;
+    let y = this.height / 2 - totalHeight / 2;
+
+    laidOut.forEach(panel => {
+      // Background box
+      this.ctx.fillStyle = 'rgba(0,0,0,0.4)';
+      this.ctx.fillRect(x, y, panelWidth, panel.boxHeight);
+
+      // Wrapped label
+      this.ctx.font = `${this.fonts.labels}px ${this.fontFamily}`;
+      this.ctx.fillStyle = 'rgba(255,255,255,0.6)';
+      panel.lines.forEach((line, i) => {
+        this.ctx.fillText(line, x + padding, y + padding + i * labelLineHeight);
+      });
+
+      // Value below the label
+      this.ctx.font = 'bold 22px "Courier New", monospace';
+      this.ctx.fillStyle = '#fff';
+      this.ctx.fillText(panel.value, x + padding, y + padding + panel.lines.length * labelLineHeight + 8);
+
+      y += panel.boxHeight + gap;
+    });
+
+    this.ctx.textAlign = prevAlign;
+    this.ctx.textBaseline = prevBaseline;
+  }
+
+  /**
+   * Word-wrap `text` to fit `maxWidth` using the current ctx font. Returns lines.
+   */
+  wrapText(text, maxWidth) {
+    const words = text.split(' ');
+    const lines = [];
+    let current = '';
+    for (const word of words) {
+      const test = current ? `${current} ${word}` : word;
+      if (current && this.ctx.measureText(test).width > maxWidth) {
+        lines.push(current);
+        current = word;
+      } else {
+        current = test;
+      }
+    }
+    if (current) lines.push(current);
+    return lines;
   }
 
   /**
@@ -517,7 +566,7 @@ export class OverlayRenderer {
     this.drawRoundedRect(x - 10, startY - 10, 180, 120, 8);
 
     // Draw title
-    this.ctx.font = '10px sans-serif';
+    this.ctx.font = `10px ${this.fontFamily}`;
     this.ctx.fillStyle = 'rgba(255,255,255,0.5)';
     this.ctx.textAlign = 'left';
     this.ctx.fillText('KEYBOARD', x, startY + 5);
@@ -533,13 +582,13 @@ export class OverlayRenderer {
       this.ctx.fillText(hint.key, x, hintY);
 
       // Draw colon
-      this.ctx.font = `${this.fonts.labels}px sans-serif`;
+      this.ctx.font = `${this.fonts.labels}px ${this.fontFamily}`;
       this.ctx.fillStyle = 'rgba(255,255,255,0.4)';
       const keyWidth = this.ctx.measureText(hint.key).width;
       this.ctx.fillText(':', x + keyWidth + 2, hintY);
 
       // Draw action
-      this.ctx.font = `${this.fonts.labels}px sans-serif`;
+      this.ctx.font = `${this.fonts.labels}px ${this.fontFamily}`;
       this.ctx.fillStyle = 'rgba(255,255,255,0.7)';
       this.ctx.fillText(hint.action, x + keyWidth + 8, hintY);
     });
@@ -577,7 +626,7 @@ export class OverlayRenderer {
     this.ctx.shadowOffsetY = 0;
 
     // PAUSED text below (smaller, cleaner)
-    this.ctx.font = 'bold 36px sans-serif';
+    this.ctx.font = `bold 36px ${this.fontFamily}`;
     this.ctx.fillStyle = '#fbbf24';
     this.ctx.textAlign = 'center';
     this.ctx.textBaseline = 'middle';
@@ -588,7 +637,7 @@ export class OverlayRenderer {
    * Draw grace animation
    */
   drawGraceAnimation() {
-    this.ctx.font = 'bold 100px sans-serif';
+    this.ctx.font = `bold 100px ${this.fontFamily}`;
     this.ctx.fillStyle = '#60a5fa';
     this.ctx.textAlign = 'center';
     this.ctx.textBaseline = 'middle';

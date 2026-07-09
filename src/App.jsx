@@ -5,12 +5,14 @@ import Timer from './components/Timer';
 import Statistics from './components/Statistics';
 import Settings from './components/Settings';
 import CameraOverlay from './components/CameraOverlay';
+import CollapsibleSection from './components/CollapsibleSection';
 import ErrorBoundary from './components/ErrorBoundary';
 import useZoomSdk from './hooks/useZoomSdk';
 import useKeyboardShortcuts from './hooks/useKeyboardShortcuts';
 import useVideoOverlay from './hooks/useVideoOverlay';
 import { formatTime } from './utils/formatTime';
 import { TIMER_DEFAULTS } from './constants/timer';
+import { DEFAULT_FONT } from './constants/fonts';
 import './App.css';
 
 function App() {
@@ -35,14 +37,28 @@ function App() {
   const [videoOverlayEnabled, setVideoOverlayEnabled] = useState('off'); // 'off', 'mini', or 'full' — opt-in by default
   const [overlayDebug, setOverlayDebug] = useState('Overlay not active');
   const [isPaused, setIsPaused] = useState(false);
-  const [sessionStartTime] = useState(Date.now());
+  const [topicStartTime, setTopicStartTime] = useState(Date.now());
+  const [now, setNow] = useState(Date.now()); // always-running clock (see effect below)
+  const [fontFamily, setFontFamily] = useState(DEFAULT_FONT.css);
   // Counter is updated for future use (e.g. analytics); value is not yet read anywhere.
   const [, setTotalSpeakersCount] = useState(0);
   const [shouldClearStatsOnNext, setShouldClearStatsOnNext] = useState(false);
 
+  // Always-running 1s clock so topic time advances continuously — not only while
+  // a speaker's timer is ticking (the Timer interval stops when no one speaks).
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  // Apply the selected font to the whole app UI via a CSS variable.
+  useEffect(() => {
+    document.documentElement.style.setProperty('--app-font', fontFamily);
+  }, [fontFamily]);
+
   // Calculate session stats (memoized to prevent 60+ calculations per minute)
   const calculateStats = useMemo(() => {
-    const sessionSeconds = Math.floor((Date.now() - sessionStartTime) / 1000);
+    const sessionSeconds = Math.floor((now - topicStartTime) / 1000);
     const sessionTime = formatTime(sessionSeconds);
 
     // Get current speaker's stats
@@ -58,10 +74,9 @@ function App() {
       sessionTime,
       currentSpeakerStats
     };
-    // timeRemaining is intentional: it changes every second and drives the
-    // per-second recompute of sessionTime for the live overlay clock.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [speakerStats, currentSpeaker, sessionStartTime, timeRemaining]);
+    // `now` ticks every second (always-running clock) so topic time recomputes
+    // continuously; `topicStartTime` resets it when a topic ends.
+  }, [speakerStats, currentSpeaker, topicStartTime, now]);
 
   const endTurn = useCallback(() => {
     setCurrentSpeaker(speaker => {
@@ -188,6 +203,7 @@ function App() {
     setQueue([]);
     clearHandRaises();
     setShouldClearStatsOnNext(true);
+    setTopicStartTime(Date.now()); // restart the per-topic clock
   }, [endTurn, clearHandRaises]);
 
   // Auto-queue panelists (host/co-host) when they raise their hand
@@ -231,7 +247,8 @@ function App() {
     setOverlayDebug,
     calculateStats,
     isPaused,
-    videoOverlayEnabled // pass the mode ('mini' or 'full')
+    videoOverlayEnabled, // pass the mode ('mini' or 'full')
+    fontFamily // selected font applied to the overlay canvas
   );
 
   // When Zoom loads this webview inside the camera / immersive feed, render only
@@ -270,16 +287,6 @@ function App() {
           >
             Video: {videoOverlayEnabled.toUpperCase()}
           </button>
-          {videoOverlayEnabled !== 'off' && (
-            <span className="overlay-status" title="Video overlay status">
-              {overlayDebug}
-            </span>
-          )}
-          {videoOverlayEnabled !== 'off' && queue.length === 0 && !currentSpeaker && (
-            <span className="overlay-hint">
-              Overlay shows on your video; start a turn to display the timer.
-            </span>
-          )}
           {!isZoomConnected && (
             <>
               <span className="dev-mode-badge">Dev Mode</span>
@@ -306,6 +313,17 @@ function App() {
         </div>
 
         <div className="center-panel">
+          {videoOverlayEnabled !== 'off' && (
+            <CollapsibleSection className="overlay-section" title="Overlay">
+              <p className="overlay-status-line">{overlayDebug}</p>
+              {queue.length === 0 && !currentSpeaker && (
+                <p className="overlay-hint-line">
+                  Overlay shows on your video; start a turn to display the timer.
+                </p>
+              )}
+            </CollapsibleSection>
+          )}
+
           <Timer
             isActive={!!currentSpeaker}
             timeLimit={timeLimit}
@@ -334,6 +352,8 @@ function App() {
           <Settings
             timeLimit={timeLimit}
             onTimeLimitChange={setTimeLimit}
+            fontFamily={fontFamily}
+            onFontChange={setFontFamily}
           />
         </div>
 

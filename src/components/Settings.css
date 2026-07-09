@@ -36,6 +36,12 @@
   margin-bottom: 0.5rem;
 }
 
+.font-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
 .preset-button {
   padding: 0.25rem 0.5rem;
   font-size: 0.688rem;
