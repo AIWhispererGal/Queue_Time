@@ -64,6 +64,15 @@ html body #root .center-panel {
   overflow: hidden !important;
 }
 
+/* Let the three grid columns shrink instead of forcing horizontal overflow
+   (grid/flex children default to min-width:auto). Without this, the narrow
+   ~370px Zoom sidebar clips panels into an unreadable "narrow slice" (Change 6). */
+html body #root .left-panel,
+html body #root .right-panel,
+html body #root .center-panel {
+  min-width: 0 !important;
+}
+
 /* Beautiful buttons */
 html body #root button {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;

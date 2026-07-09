@@ -4,6 +4,7 @@ import SpeakerQueue from './components/SpeakerQueue';
 import Timer from './components/Timer';
 import Statistics from './components/Statistics';
 import Settings from './components/Settings';
+import CameraOverlay from './components/CameraOverlay';
 import ErrorBoundary from './components/ErrorBoundary';
 import useZoomSdk from './hooks/useZoomSdk';
 import useKeyboardShortcuts from './hooks/useKeyboardShortcuts';
@@ -20,6 +21,7 @@ function App() {
     myUserId,
     zoomSdkInstance,
     sdkError,
+    runningContext,
     handRaises,
     clearHandRaises
   } = useZoomSdk();
@@ -30,8 +32,8 @@ function App() {
   const [speakerStats, setSpeakerStats] = useState({});
   const [timeLimit, setTimeLimit] = useState(TIMER_DEFAULTS.TIME_LIMIT);
   const [timeRemaining, setTimeRemaining] = useState(TIMER_DEFAULTS.TIME_LIMIT);
-  const [videoOverlayEnabled, setVideoOverlayEnabled] = useState('full'); // 'off', 'mini', or 'full'
-  const [, setOverlayDebug] = useState('Overlay not active');
+  const [videoOverlayEnabled, setVideoOverlayEnabled] = useState('off'); // 'off', 'mini', or 'full' — opt-in by default
+  const [overlayDebug, setOverlayDebug] = useState('Overlay not active');
   const [isPaused, setIsPaused] = useState(false);
   const [sessionStartTime] = useState(Date.now());
   // Counter is updated for future use (e.g. analytics); value is not yet read anywhere.
@@ -232,6 +234,20 @@ function App() {
     videoOverlayEnabled // pass the mode ('mini' or 'full')
   );
 
+  // When Zoom loads this webview inside the camera / immersive feed, render only
+  // a minimal overlay instead of the full dashboard (which otherwise appears
+  // squished inside the camera tile). The sidebar instance drives all state.
+  if (runningContext === 'inCamera' || runningContext === 'inImmersive') {
+    return (
+      <CameraOverlay
+        currentSpeaker={currentSpeaker}
+        nextSpeaker={queue.length > 0 ? queue[0] : null}
+        timeRemaining={timeRemaining}
+        timeLimit={timeLimit}
+      />
+    );
+  }
+
   return (
     <div className="app">
       <header className="app-header">
@@ -254,6 +270,16 @@ function App() {
           >
             Video: {videoOverlayEnabled.toUpperCase()}
           </button>
+          {videoOverlayEnabled !== 'off' && (
+            <span className="overlay-status" title="Video overlay status">
+              {overlayDebug}
+            </span>
+          )}
+          {videoOverlayEnabled !== 'off' && queue.length === 0 && !currentSpeaker && (
+            <span className="overlay-hint">
+              Overlay shows on your video; start a turn to display the timer.
+            </span>
+          )}
           {!isZoomConnected && (
             <>
               <span className="dev-mode-badge">Dev Mode</span>

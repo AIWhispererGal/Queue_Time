@@ -167,6 +167,44 @@ export class OverlayRenderer {
   }
 
   /**
+   * Draw a static idle frame shown when the overlay is on but no one is speaking.
+   * Uses the same gradient/background styling as the live overlay so the camera
+   * shows an intentional "No current speaker" frame instead of a blank/no-op.
+   */
+  drawIdle(mode = 'full') {
+    const isMini = mode === 'mini';
+    const centerX = this.width / 2;
+    const centerY = this.height / 2;
+
+    // Clear + reset (mirrors drawOverlay setup)
+    this.ctx.clearRect(0, 0, this.width, this.height);
+    this.ctx.globalAlpha = 1;
+    this.ctx.setTransform(1, 0, 0, 1, 0, 0);
+
+    // App gradient / background styling
+    this.drawBackground();
+
+    // Centered "No current speaker" headline
+    this.ctx.textAlign = 'center';
+    this.ctx.textBaseline = 'middle';
+    this.ctx.font = `bold ${isMini ? 72 : 54}px sans-serif`;
+    this.ctx.fillStyle = this.colors.white;
+    this.ctx.shadowColor = 'rgba(0,0,0,0.5)';
+    this.ctx.shadowBlur = 4;
+    this.ctx.shadowOffsetY = 2;
+    this.ctx.fillText('No current speaker', centerX, centerY);
+    this.ctx.shadowBlur = 0;
+    this.ctx.shadowOffsetY = 0;
+
+    // Subtitle hint in full mode
+    if (!isMini) {
+      this.ctx.font = `500 ${this.fonts.headers}px sans-serif`;
+      this.ctx.fillStyle = 'rgba(255,255,255,0.6)';
+      this.ctx.fillText('Start a turn to display the timer', centerX, centerY + 60);
+    }
+  }
+
+  /**
    * Draw semi-transparent background
    */
   drawBackground() {

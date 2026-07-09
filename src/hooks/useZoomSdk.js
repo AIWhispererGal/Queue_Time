@@ -13,6 +13,7 @@ function useZoomSdk() {
   const [sdkError, setSdkError] = useState(null);
   const [debugInfo, setDebugInfo] = useState('Waiting to initialize...');
   const [contextType, setContextType] = useState(null); // 'meeting' or 'webinar'
+  const [runningContext, setRunningContext] = useState(null); // raw Zoom context, e.g. 'inMeeting' | 'inCamera' | 'inImmersive'
   const [handRaises, setHandRaises] = useState([]);
   const handRaisesRef = useRef([]);
   const myUserIdRef = useRef(null);
@@ -58,6 +59,9 @@ function useZoomSdk() {
         const context = await zoomSdk.getRunningContext();
         setMyUserId(context.userId);
         myUserIdRef.current = context.userId;
+        // Store the raw running context so the app can render a minimal camera
+        // overlay when Zoom loads this webview inside the camera/immersive feed.
+        setRunningContext(context.context);
 
         // Detect if we're in a webinar or meeting
         if (context.context === 'inWebinar') {
@@ -340,6 +344,7 @@ function useZoomSdk() {
     sdkError,
     debugInfo,
     contextType,
+    runningContext,
     handRaises,
     clearHandRaises
   };

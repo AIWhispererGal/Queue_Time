@@ -110,67 +110,13 @@ export function useVideoOverlay(zoomSdk, currentSpeaker, timeRemaining, timeLimi
       }
     };
 
-    // Show idle state when no one is speaking
-    if (!currentSpeaker) {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
-
-      // Reset the successful method when no speaker
-      successfulMethodRef.current = null;
-
-      // Clear overlay when no speaker
-      if (renderingContextActive && zoomSdk) {
-        if (setDebugMessage) setDebugMessage('Clearing overlay...');
-
-        const clearOverlay = async () => {
-          try {
-            await zoomSdk.clearImage();
-            if (setDebugMessage) setDebugMessage('Overlay cleared');
-          } catch {
-            // Try drawing a transparent overlay as fallback
-            try {
-              const clearCanvas = document.createElement('canvas');
-              clearCanvas.width = 1280;
-              clearCanvas.height = 720;
-              const clearCtx = clearCanvas.getContext('2d');
-              clearCtx.clearRect(0, 0, clearCanvas.width, clearCanvas.height);
-
-              const clearImageData = clearCtx.getImageData(0, 0, clearCanvas.width, clearCanvas.height);
-              await zoomSdk.drawImage({
-                x: 0, y: 0,
-                imageData: clearImageData,
-                zIndex: 3
-              });
-              if (setDebugMessage) setDebugMessage('Overlay cleared (transparent)');
-            } catch {
-              if (setDebugMessage) setDebugMessage('Clear overlay failed');
-            }
-          }
-        };
-
-        clearOverlay();
-      }
-
-      return;
-    }
-
-    // Start rendering context if not active
-    if (!renderingContextActive) {
-      initRenderingContext().then(success => {
-        if (!success) return;
-      });
-    }
-
-    // Create canvas and renderer only once
+    // Create canvas and renderer once (shared by idle + active frames)
     if (!canvasRef.current) {
       const canvas = document.createElement('canvas');
       canvas.width = 1280;
       canvas.height = 720;
       canvasRef.current = canvas;
 
-      // Initialize overlay renderer
       overlayRendererRef.current = new OverlayRenderer(canvas, {
         showRing: true,
         showDigital: true,
@@ -181,6 +127,79 @@ export function useVideoOverlay(zoomSdk, currentSpeaker, timeRemaining, timeLimi
 
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
+
+    // Push the current canvas to the camera via the drawImage fallback chain
+    // (ImageData -> base64 -> base64 without prefix). Returns true on success.
+    const pushCanvas = async () => {
+      try {
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        try {
+          await zoomSdk.drawImage({ x: 0, y: 0, imageData, zIndex: 3 });
+          return true;
+        } catch { /* try base64 */ }
+
+        try {
+          const base64Image = canvas.toDataURL('image/png');
+          await zoomSdk.drawImage({ x: 0, y: 0, imageData: base64Image, zIndex: 3 });
+          successfulMethodRef.current = 'base64';
+          return true;
+        } catch { /* try without prefix */ }
+
+        try {
+          const base64Data = canvas.toDataURL('image/png').replace(/^data:image\/\w+;base64,/, '');
+          await zoomSdk.drawImage({ x: 0, y: 0, imageData: base64Data, zIndex: 3 });
+          successfulMethodRef.current = 'base64clean';
+          return true;
+        } catch { /* all methods failed */ }
+
+        return false;
+      } catch (error) {
+        if (setDebugMessage) setDebugMessage(`Draw error: ${error.message || error}`);
+        return false;
+      }
+    };
+
+    // Idle state: overlay is on (mini/full) but no one is speaking. Draw a static
+    // "No current speaker" frame instead of clearing to a silent no-op.
+    if (!currentSpeaker) {
+      // Idle frame is static — stop the per-second update loop.
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+      successfulMethodRef.current = null;
+      lastUpdateRef.current = -1; // force a redraw once a speaker starts again
+
+      const drawIdleFrame = async () => {
+        overlayRendererRef.current.drawIdle(overlayMode);
+        const ok = await pushCanvas();
+        if (setDebugMessage) {
+          setDebugMessage(ok ? 'Idle: No current speaker' : 'Idle frame draw failed');
+        }
+      };
+
+      const showIdle = async () => {
+        const wasActive = renderingContextActive;
+        const started = wasActive || await initRenderingContext();
+        if (!started) return;
+        // Give a freshly started context a moment before the first draw.
+        if (wasActive) {
+          await drawIdleFrame();
+        } else {
+          setTimeout(drawIdleFrame, 500);
+        }
+      };
+
+      showIdle();
+      return;
+    }
+
+    // Start rendering context if not active
+    if (!renderingContextActive) {
+      initRenderingContext().then(success => {
+        if (!success) return;
+      });
+    }
 
     // Function to draw the timer overlay using new renderer
     const drawTimerOverlay = () => {
@@ -201,7 +220,7 @@ export function useVideoOverlay(zoomSdk, currentSpeaker, timeRemaining, timeLimi
     // Function to update the overlay using drawImage
     const updateOverlay = async () => {
       try {
-        // Update if time has changed OR if we need to force update
+        // Update if the second changed OR a forced update was requested
         const currentSecond = Math.floor(timeRemainingRef.current);
         if (currentSecond === lastUpdateRef.current && !forceUpdateRef.current) {
           return;
@@ -210,68 +229,14 @@ export function useVideoOverlay(zoomSdk, currentSpeaker, timeRemaining, timeLimi
         forceUpdateRef.current = false;
 
         drawTimerOverlay();
-
-        try {
-          const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-
-          // Method 3: Full ImageData object (most reliable)
-          try {
-            await zoomSdk.drawImage({
-              x: 0,
-              y: 0,
-              imageData: imageData,
-              zIndex: 3
-            });
-            if (setDebugMessage) setDebugMessage(`Timer: ${Math.floor(timeRemainingRef.current / 60)}:${(timeRemainingRef.current % 60).toString().padStart(2, '0')}`);
-            return;
-          } catch {
-            // Try base64 fallbacks
-          }
-
-          // Method 2: Base64 with prefix
-          try {
-            const base64Image = canvas.toDataURL('image/png');
-            await zoomSdk.drawImage({
-              x: 0,
-              y: 0,
-              imageData: base64Image,
-              zIndex: 3
-            });
-            successfulMethodRef.current = 'base64';
-            if (setDebugMessage) setDebugMessage(`Timer active`);
-            return;
-          } catch {
-            // Try without prefix
-          }
-
-          // Method 2b: Base64 without prefix
-          try {
-            const base64Full = canvas.toDataURL('image/png');
-            const base64Data = base64Full.replace(/^data:image\/\w+;base64,/, '');
-            await zoomSdk.drawImage({
-              x: 0,
-              y: 0,
-              imageData: base64Data,
-              zIndex: 3
-            });
-            successfulMethodRef.current = 'base64clean';
-            if (setDebugMessage) setDebugMessage(`Timer active`);
-            return;
-          } catch {
-            // All methods failed
-          }
-
-          if (setDebugMessage) setDebugMessage(`Draw methods failed`);
-
-        } catch (error) {
-          if (setDebugMessage) setDebugMessage(`Draw error: ${error.message || error}`);
-
-          // If API not supported, stop trying
-          if (error.message && error.message.includes('not support')) {
-            if (intervalRef.current) {
-              clearInterval(intervalRef.current);
-              intervalRef.current = null;
-            }
+        const ok = await pushCanvas();
+        if (setDebugMessage) {
+          if (ok) {
+            const mm = Math.floor(timeRemainingRef.current / 60);
+            const ss = (timeRemainingRef.current % 60).toString().padStart(2, '0');
+            setDebugMessage(`Timer: ${mm}:${ss}`);
+          } else {
+            setDebugMessage('Draw methods failed');
           }
         }
       } catch (error) {

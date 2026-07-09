@@ -90,6 +90,9 @@
 
 .left-panel, .right-panel {
   flex: 1;
+  /* min-width:0 lets flex/grid children shrink instead of forcing horizontal
+     overflow that overflow:hidden then clips into a "narrow slice" (Change 6) */
+  min-width: 0;
   background: white;
   border-radius: 0.25rem;
   box-shadow: 0 1px 3px rgba(0,0,0,0.1);
@@ -100,6 +103,7 @@
 
 .center-panel {
   flex: 1.2;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
@@ -165,6 +169,26 @@ button:disabled {
   border: none !important;
   border-radius: 0.25rem !important;
   cursor: pointer !important;
+  /* Fixed sizing so the OFF/MINI/FULL label change doesn't reflow the header */
+  min-width: 5.75rem !important;
+  text-align: center !important;
+}
+
+/* Video overlay status + hint surfaced in the header (Change 4) */
+.overlay-status {
+  font-size: 0.5rem !important;
+  color: rgba(255,255,255,0.75) !important;
+  font-family: monospace !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  max-width: 10rem !important;
+}
+
+.overlay-hint {
+  font-size: 0.5rem !important;
+  color: rgba(255,255,255,0.6) !important;
+  font-style: italic !important;
 }
 
 .btn-active {
