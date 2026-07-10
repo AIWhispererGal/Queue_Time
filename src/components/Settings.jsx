@@ -1,20 +1,8 @@
 import React from 'react';
 import CollapsibleSection from './CollapsibleSection';
-import FontControls from './FontControls';
 import './Settings.css';
 
-function Settings({
-  timeLimit,
-  onTimeLimitChange,
-  uiFontFamily,
-  onUiFontChange,
-  uiFontScale,
-  onUiFontScaleChange,
-  overlayFontFamily,
-  onOverlayFontChange,
-  overlayFontScale,
-  onOverlayFontScaleChange,
-}) {
+function Settings({ timeLimit, onTimeLimitChange }) {
   const presets = [
     { label: '30s', value: 30 },
     { label: '1m', value: 60 },
@@ -71,24 +59,6 @@ function Settings({
             <span className="current-time">{formatTime(timeLimit)}</span>
           </div>
         </div>
-      </div>
-
-      <div className="settings-section">
-        <label className="settings-label">Fonts</label>
-        <FontControls
-          label="App (sidebar)"
-          fontFamily={uiFontFamily}
-          onFontChange={onUiFontChange}
-          fontScale={uiFontScale}
-          onFontScaleChange={onUiFontScaleChange}
-        />
-        <FontControls
-          label="Video overlay"
-          fontFamily={overlayFontFamily}
-          onFontChange={onOverlayFontChange}
-          fontScale={overlayFontScale}
-          onFontScaleChange={onOverlayFontScaleChange}
-        />
       </div>
 
       <div className="settings-info">

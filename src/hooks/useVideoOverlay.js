@@ -13,6 +13,7 @@ export function useVideoOverlay(zoomSdk, currentSpeaker, timeRemaining, timeLimi
   const successfulMethodRef = useRef(null);
   const timeRemainingRef = useRef(timeRemaining);
   const isPausedRef = useRef(isPaused);
+  const statsRef = useRef(stats);
   const [renderingContextActive, setRenderingContextActive] = useState(false);
   const overlayRendererRef = useRef(null);
   const graceAnimationRef = useRef(false);
@@ -22,6 +23,13 @@ export function useVideoOverlay(zoomSdk, currentSpeaker, timeRemaining, timeLimi
   useEffect(() => {
     timeRemainingRef.current = timeRemaining;
   }, [timeRemaining]);
+
+  // Keep a live ref to stats so the per-second interval draws the current topic
+  // time (the effect's closure would otherwise capture a stale stats object, so
+  // TOPIC TIME never advanced). Mirrors the timeRemainingRef pattern.
+  useEffect(() => {
+    statsRef.current = stats;
+  }, [stats]);
 
   // Update pause ref and force an update when pause state changes
   useEffect(() => {
@@ -216,7 +224,7 @@ export function useVideoOverlay(zoomSdk, currentSpeaker, timeRemaining, timeLimi
         timeLimit,
         queue,
         isPaused: isPausedRef.current,
-        stats,
+        stats: statsRef.current,
         graceAnimating: graceAnimationRef.current
       }, overlayMode);
     };

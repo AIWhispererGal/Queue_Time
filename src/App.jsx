@@ -4,6 +4,7 @@ import SpeakerQueue from './components/SpeakerQueue';
 import Timer from './components/Timer';
 import Statistics from './components/Statistics';
 import Settings from './components/Settings';
+import Appearance from './components/Appearance';
 import CameraOverlay from './components/CameraOverlay';
 import ErrorBoundary from './components/ErrorBoundary';
 import useZoomSdk from './hooks/useZoomSdk';
@@ -350,6 +351,9 @@ function App() {
           <Settings
             timeLimit={timeLimit}
             onTimeLimitChange={setTimeLimit}
+          />
+
+          <Appearance
             uiFontFamily={uiFontFamily}
             onUiFontChange={setUiFontFamily}
             uiFontScale={uiFontScale}
