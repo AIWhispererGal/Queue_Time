@@ -1,9 +1,20 @@
 import React from 'react';
 import CollapsibleSection from './CollapsibleSection';
-import { FONT_OPTIONS, DEFAULT_FONT, FONT_SCALE } from '../constants/fonts';
+import FontControls from './FontControls';
 import './Settings.css';
 
-function Settings({ timeLimit, onTimeLimitChange, fontFamily, onFontChange, fontScale = FONT_SCALE.DEFAULT, onFontScaleChange }) {
+function Settings({
+  timeLimit,
+  onTimeLimitChange,
+  uiFontFamily,
+  onUiFontChange,
+  uiFontScale,
+  onUiFontScaleChange,
+  overlayFontFamily,
+  onOverlayFontChange,
+  overlayFontScale,
+  onOverlayFontScaleChange,
+}) {
   const presets = [
     { label: '30s', value: 30 },
     { label: '1m', value: 60 },
@@ -21,18 +32,6 @@ function Settings({ timeLimit, onTimeLimitChange, fontFamily, onFontChange, font
     if (!isNaN(value) && value > 0 && value <= 600) {
       onTimeLimitChange(value);
     }
-  };
-
-  const handleFontScaleChange = (e) => {
-    const value = parseFloat(e.target.value);
-    if (!isNaN(value) && onFontScaleChange) {
-      onFontScaleChange(value);
-    }
-  };
-
-  const handleResetAppearance = () => {
-    if (onFontChange) onFontChange(DEFAULT_FONT.css);
-    if (onFontScaleChange) onFontScaleChange(FONT_SCALE.DEFAULT);
   };
 
   const formatTime = (seconds) => {
@@ -74,51 +73,23 @@ function Settings({ timeLimit, onTimeLimitChange, fontFamily, onFontChange, font
         </div>
       </div>
 
-      {(onFontChange || onFontScaleChange) && (
-        <div className="settings-section">
-          <label className="settings-label">Font</label>
-
-          {onFontChange && (
-            <div className="font-presets">
-              {FONT_OPTIONS.map(option => (
-                <button
-                  key={option.label}
-                  className={`preset-button ${fontFamily === option.css ? 'active' : ''}`}
-                  style={{ fontFamily: option.css }}
-                  onClick={() => onFontChange(option.css)}
-                >
-                  {option.label}
-                </button>
-              ))}
-            </div>
-          )}
-
-          {onFontScaleChange && (
-            <>
-              <label className="settings-label settings-sublabel">Text Size</label>
-              <div className="custom-time">
-                <input
-                  type="range"
-                  min={FONT_SCALE.MIN}
-                  max={FONT_SCALE.MAX}
-                  step={FONT_SCALE.STEP}
-                  value={fontScale}
-                  onChange={handleFontScaleChange}
-                  className="time-slider"
-                  aria-label="Text size"
-                />
-                <div className="time-display">
-                  <span className="current-time">{Math.round(fontScale * 100)}%</span>
-                </div>
-              </div>
-            </>
-          )}
-
-          <button className="reset-appearance-button" onClick={handleResetAppearance}>
-            Reset to default
-          </button>
-        </div>
-      )}
+      <div className="settings-section">
+        <label className="settings-label">Fonts</label>
+        <FontControls
+          label="App (sidebar)"
+          fontFamily={uiFontFamily}
+          onFontChange={onUiFontChange}
+          fontScale={uiFontScale}
+          onFontScaleChange={onUiFontScaleChange}
+        />
+        <FontControls
+          label="Video overlay"
+          fontFamily={overlayFontFamily}
+          onFontChange={onOverlayFontChange}
+          fontScale={overlayFontScale}
+          onFontScaleChange={onOverlayFontScaleChange}
+        />
+      </div>
 
       <div className="settings-info">
         <p>💡 <strong>Tip:</strong> Change time limit between speakers</p>

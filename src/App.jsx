@@ -37,8 +37,11 @@ function App() {
   const [isPaused, setIsPaused] = useState(false);
   const [topicStartTime, setTopicStartTime] = useState(Date.now());
   const [now, setNow] = useState(Date.now()); // always-running clock (see effect below)
-  const [fontFamily, setFontFamily] = useState(DEFAULT_FONT.css);
-  const [fontScale, setFontScale] = useState(FONT_SCALE.DEFAULT);
+  // Separate font settings for the app UI (sidebar) and the video overlay.
+  const [uiFontFamily, setUiFontFamily] = useState(DEFAULT_FONT.css);
+  const [uiFontScale, setUiFontScale] = useState(FONT_SCALE.DEFAULT);
+  const [overlayFontFamily, setOverlayFontFamily] = useState(DEFAULT_FONT.css);
+  const [overlayFontScale, setOverlayFontScale] = useState(FONT_SCALE.DEFAULT);
   // Counter is updated for future use (e.g. analytics); value is not yet read anywhere.
   const [, setTotalSpeakersCount] = useState(0);
   const [shouldClearStatsOnNext, setShouldClearStatsOnNext] = useState(false);
@@ -50,16 +53,16 @@ function App() {
     return () => clearInterval(id);
   }, []);
 
-  // Apply the selected font to the whole app UI via a CSS variable.
+  // Apply the app UI font to the whole sidebar via a CSS variable.
   useEffect(() => {
-    document.documentElement.style.setProperty('--app-font', fontFamily);
-  }, [fontFamily]);
+    document.documentElement.style.setProperty('--app-font', uiFontFamily);
+  }, [uiFontFamily]);
 
-  // Apply the font-size scale by adjusting the root font-size (scales all rem
-  // units across the sidebar / in-app UI). 1 = the default 16px.
+  // Apply the app UI font-size scale by adjusting the root font-size (scales all
+  // rem units across the sidebar / in-app UI). 1 = the default 16px.
   useEffect(() => {
-    document.documentElement.style.fontSize = `${BASE_FONT_PX * fontScale}px`;
-  }, [fontScale]);
+    document.documentElement.style.fontSize = `${BASE_FONT_PX * uiFontScale}px`;
+  }, [uiFontScale]);
 
   // Calculate session stats (memoized to prevent 60+ calculations per minute)
   const calculateStats = useMemo(() => {
@@ -253,8 +256,8 @@ function App() {
     calculateStats,
     isPaused,
     videoOverlayEnabled, // pass the mode ('mini' or 'full')
-    fontFamily, // selected font applied to the overlay canvas
-    fontScale // selected font size applied to the overlay canvas
+    overlayFontFamily, // overlay-specific font
+    overlayFontScale // overlay-specific font size
   );
 
   // When Zoom loads this webview inside the camera / immersive feed, render only
@@ -347,10 +350,14 @@ function App() {
           <Settings
             timeLimit={timeLimit}
             onTimeLimitChange={setTimeLimit}
-            fontFamily={fontFamily}
-            onFontChange={setFontFamily}
-            fontScale={fontScale}
-            onFontScaleChange={setFontScale}
+            uiFontFamily={uiFontFamily}
+            onUiFontChange={setUiFontFamily}
+            uiFontScale={uiFontScale}
+            onUiFontScaleChange={setUiFontScale}
+            overlayFontFamily={overlayFontFamily}
+            onOverlayFontChange={setOverlayFontFamily}
+            overlayFontScale={overlayFontScale}
+            onOverlayFontScaleChange={setOverlayFontScale}
           />
         </div>
 

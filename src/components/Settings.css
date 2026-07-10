@@ -42,6 +42,12 @@
   gap: 0.25rem;
 }
 
+.font-controls + .font-controls {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px dashed #e0e0e0;
+}
+
 .settings-sublabel {
   margin-top: 0.6rem;
 }
