@@ -27,3 +27,17 @@ export const FONT_OPTIONS = [
 ];
 
 export const DEFAULT_FONT = FONT_OPTIONS[0];
+
+/**
+ * Font size scaling (applied to the app UI root font-size and the overlay
+ * canvas fonts). 1 = default; the slider covers MIN..MAX.
+ */
+export const FONT_SCALE = {
+  DEFAULT: 1,
+  MIN: 0.8,
+  MAX: 1.5,
+  STEP: 0.05,
+};
+
+/** Base root font-size (px) that the scale multiplies. */
+export const BASE_FONT_PX = 16;

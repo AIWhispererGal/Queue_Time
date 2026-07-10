@@ -174,21 +174,6 @@ button:disabled {
   text-align: center !important;
 }
 
-/* Video overlay status + hint, shown in the collapsible "Overlay" section */
-.overlay-status-line {
-  font-size: 0.8rem;
-  color: #444;
-  font-family: monospace;
-  word-break: break-word;
-}
-
-.overlay-hint-line {
-  font-size: 0.75rem;
-  color: #666;
-  font-style: italic;
-  margin-top: 0.35rem;
-}
-
 .btn-active {
   background: #4CAF50 !important;
 }

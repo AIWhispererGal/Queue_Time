@@ -42,6 +42,33 @@
   gap: 0.25rem;
 }
 
+.settings-sublabel {
+  margin-top: 0.6rem;
+}
+
+.reset-appearance-button {
+  margin-top: 0.6rem;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.688rem;
+  background: #f0f0f0;
+  color: #666;
+  border: 1px solid #ddd;
+}
+
+.reset-appearance-button:hover {
+  background: #e0e0e0;
+}
+
+.how-to-link {
+  color: #667eea;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.how-to-link:hover {
+  text-decoration: underline;
+}
+
 .preset-button {
   padding: 0.25rem 0.5rem;
   font-size: 0.688rem;

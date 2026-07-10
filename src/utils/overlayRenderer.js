@@ -19,16 +19,17 @@ export class OverlayRenderer {
       ...options
     };
 
-    // Font sizes
-    this.fonts = {
+    // Base font sizes — multiplied by fontScale (via the setter below) into this.fonts
+    this._baseFonts = {
       labels: 16,    // Labels & Stats
       names: 22,     // Queue Names
       headers: 26    // Headers & Current Speaker
     };
 
-    // Configurable font family for overlay text (set from the app's font setting).
-    // Mutable so the cached renderer instance can be updated without recreation.
+    // Configurable font family + size scale for overlay text (from the app's font
+    // settings). Mutable so the cached renderer can update without recreation.
     this.fontFamily = options.fontFamily || 'sans-serif';
+    this.fontScale = options.fontScale || 1; // setter also populates this.fonts
 
     // Load background image
     this.backgroundImage = null;
@@ -47,6 +48,33 @@ export class OverlayRenderer {
       black: '#000000',
       overlay: 'rgba(0,0,0,0.5)'
     };
+  }
+
+  /** Scale factor for all overlay text; recomputes this.fonts when set. */
+  set fontScale(scale) {
+    this._fontScale = scale || 1;
+    this.fonts = {
+      labels: this._baseFonts.labels * this._fontScale,
+      names: this._baseFonts.names * this._fontScale,
+      headers: this._baseFonts.headers * this._fontScale
+    };
+  }
+
+  get fontScale() {
+    return this._fontScale;
+  }
+
+  /**
+   * Draw the app URL as small informational text in the bottom-left corner.
+   */
+  drawAppLink() {
+    this.ctx.save();
+    this.ctx.font = `${Math.round(14 * this.fontScale)}px ${this.fontFamily}`;
+    this.ctx.fillStyle = 'rgba(255,255,255,0.6)';
+    this.ctx.textAlign = 'left';
+    this.ctx.textBaseline = 'bottom';
+    this.ctx.fillText('queuetime.app', 24, this.height - 20);
+    this.ctx.restore();
   }
 
   /**
@@ -168,6 +196,9 @@ export class OverlayRenderer {
     if (graceAnimating) {
       this.drawGraceAnimation();
     }
+
+    // App URL (informational, on top of everything)
+    this.drawAppLink();
   }
 
   /**
@@ -191,7 +222,7 @@ export class OverlayRenderer {
     // Centered "No current speaker" headline
     this.ctx.textAlign = 'center';
     this.ctx.textBaseline = 'middle';
-    this.ctx.font = `bold ${isMini ? 72 : 54}px ${this.fontFamily}`;
+    this.ctx.font = `bold ${(isMini ? 72 : 54) * this.fontScale}px ${this.fontFamily}`;
     this.ctx.fillStyle = this.colors.white;
     this.ctx.shadowColor = 'rgba(0,0,0,0.5)';
     this.ctx.shadowBlur = 4;
@@ -206,6 +237,9 @@ export class OverlayRenderer {
       this.ctx.fillStyle = 'rgba(255,255,255,0.6)';
       this.ctx.fillText('Start a turn to display the timer', centerX, centerY + 60);
     }
+
+    // App URL (informational)
+    this.drawAppLink();
   }
 
   /**
@@ -318,7 +352,7 @@ export class OverlayRenderer {
     const timeText = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 
     // Load custom font or use bold sans-serif - much larger in mini mode
-    const fontSize = isMini ? 200 : 140;
+    const fontSize = (isMini ? 200 : 140) * this.fontScale;
     this.ctx.font = `bold ${fontSize}px "Orbitron", ${this.fontFamily}`;
     this.ctx.textAlign = 'center';
     this.ctx.textBaseline = 'middle';
@@ -463,8 +497,8 @@ export class OverlayRenderer {
   drawStatsPanel(stats) {
     const panelWidth = 240; // wider to fit the longer label
     const padding = 12;
-    const labelLineHeight = 20;
-    const valueHeight = 26;
+    const labelLineHeight = Math.round(this.fonts.labels + 4);
+    const valueHeight = Math.round(22 * this.fontScale + 4);
     const gap = 14;
     const x = this.width - panelWidth - 20;
 
@@ -512,7 +546,7 @@ export class OverlayRenderer {
       });
 
       // Value below the label
-      this.ctx.font = 'bold 22px "Courier New", monospace';
+      this.ctx.font = `bold ${Math.round(22 * this.fontScale)}px "Courier New", monospace`;
       this.ctx.fillStyle = '#fff';
       this.ctx.fillText(panel.value, x + padding, y + padding + panel.lines.length * labelLineHeight + 8);
 
@@ -566,7 +600,7 @@ export class OverlayRenderer {
     this.drawRoundedRect(x - 10, startY - 10, 180, 120, 8);
 
     // Draw title
-    this.ctx.font = `10px ${this.fontFamily}`;
+    this.ctx.font = `${Math.round(10 * this.fontScale)}px ${this.fontFamily}`;
     this.ctx.fillStyle = 'rgba(255,255,255,0.5)';
     this.ctx.textAlign = 'left';
     this.ctx.fillText('KEYBOARD', x, startY + 5);
@@ -626,7 +660,7 @@ export class OverlayRenderer {
     this.ctx.shadowOffsetY = 0;
 
     // PAUSED text below (smaller, cleaner)
-    this.ctx.font = `bold 36px ${this.fontFamily}`;
+    this.ctx.font = `bold ${Math.round(36 * this.fontScale)}px ${this.fontFamily}`;
     this.ctx.fillStyle = '#fbbf24';
     this.ctx.textAlign = 'center';
     this.ctx.textBaseline = 'middle';
@@ -637,7 +671,7 @@ export class OverlayRenderer {
    * Draw grace animation
    */
   drawGraceAnimation() {
-    this.ctx.font = `bold 100px ${this.fontFamily}`;
+    this.ctx.font = `bold ${Math.round(100 * this.fontScale)}px ${this.fontFamily}`;
     this.ctx.fillStyle = '#60a5fa';
     this.ctx.textAlign = 'center';
     this.ctx.textBaseline = 'middle';

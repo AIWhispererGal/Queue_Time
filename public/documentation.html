@@ -43,6 +43,8 @@
 
     <h2>Using Queue Time</h2>
 
+    <p>Each panel — Participants, Speaker Queue, Timer, Settings, and Statistics — has a header you can click to collapse or expand it. Settings and Statistics start collapsed to save space; the others start open.</p>
+
     <h3>Basic Operation</h3>
     <ol>
         <li><strong>Add Speakers:</strong> Click participant names to add them to the queue</li>
@@ -60,16 +62,25 @@
     </ul>
 
     <h3>Video Overlay Modes</h3>
-    <p>Click the overlay button to cycle through:</p>
+    <p>The overlay is <strong>off by default</strong>. Click the <strong>Video</strong> button in the header to cycle through:</p>
     <ul>
-        <li><strong>OFF:</strong> No overlay on video</li>
+        <li><strong>OFF:</strong> No overlay on your video</li>
         <li><strong>MINI:</strong> Large timer only</li>
-        <li><strong>FULL:</strong> Timer, queue, stats, and keyboard hints</li>
+        <li><strong>FULL:</strong> Timer, current/next speaker, queue, stats, and keyboard hints</li>
     </ul>
+    <p>When the overlay is on but no one is speaking, it shows a "No current speaker" frame. The overlay also displays the app address (<code>queuetime.app</code>) so viewers know where to find it.</p>
 
     <div class="warning">
         <strong>Note:</strong> Video overlay requires a supported Zoom client version and may not be available in all meeting types.
     </div>
+
+    <h3>Appearance &amp; Font</h3>
+    <p>Open the <strong>Settings</strong> panel to change how Queue Time looks (applies to the app and the video overlay):</p>
+    <ul>
+        <li><strong>Font:</strong> Choose System, Serif, Mono, or Rounded.</li>
+        <li><strong>Text Size:</strong> Scale the interface and overlay text up or down.</li>
+        <li><strong>Reset to default:</strong> Restore the default font and size.</li>
+    </ul>
 
     <h3>Keyboard Shortcuts</h3>
     <table style="width: 100%; border-collapse: collapse;">
@@ -109,7 +120,7 @@
     <h3>End Turn vs End Topic</h3>
     <ul>
         <li><strong>End Turn:</strong> Moves to next speaker, keeps queue and stats</li>
-        <li><strong>End Topic:</strong> Clears queue for new discussion topic</li>
+        <li><strong>End Topic:</strong> Clears the queue for a new discussion topic and restarts the topic timer</li>
     </ul>
 
     <h3>Queue Management</h3>

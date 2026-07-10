@@ -5,14 +5,13 @@ import Timer from './components/Timer';
 import Statistics from './components/Statistics';
 import Settings from './components/Settings';
 import CameraOverlay from './components/CameraOverlay';
-import CollapsibleSection from './components/CollapsibleSection';
 import ErrorBoundary from './components/ErrorBoundary';
 import useZoomSdk from './hooks/useZoomSdk';
 import useKeyboardShortcuts from './hooks/useKeyboardShortcuts';
 import useVideoOverlay from './hooks/useVideoOverlay';
 import { formatTime } from './utils/formatTime';
 import { TIMER_DEFAULTS } from './constants/timer';
-import { DEFAULT_FONT } from './constants/fonts';
+import { DEFAULT_FONT, FONT_SCALE, BASE_FONT_PX } from './constants/fonts';
 import './App.css';
 
 function App() {
@@ -35,11 +34,11 @@ function App() {
   const [timeLimit, setTimeLimit] = useState(TIMER_DEFAULTS.TIME_LIMIT);
   const [timeRemaining, setTimeRemaining] = useState(TIMER_DEFAULTS.TIME_LIMIT);
   const [videoOverlayEnabled, setVideoOverlayEnabled] = useState('off'); // 'off', 'mini', or 'full' — opt-in by default
-  const [overlayDebug, setOverlayDebug] = useState('Overlay not active');
   const [isPaused, setIsPaused] = useState(false);
   const [topicStartTime, setTopicStartTime] = useState(Date.now());
   const [now, setNow] = useState(Date.now()); // always-running clock (see effect below)
   const [fontFamily, setFontFamily] = useState(DEFAULT_FONT.css);
+  const [fontScale, setFontScale] = useState(FONT_SCALE.DEFAULT);
   // Counter is updated for future use (e.g. analytics); value is not yet read anywhere.
   const [, setTotalSpeakersCount] = useState(0);
   const [shouldClearStatsOnNext, setShouldClearStatsOnNext] = useState(false);
@@ -55,6 +54,12 @@ function App() {
   useEffect(() => {
     document.documentElement.style.setProperty('--app-font', fontFamily);
   }, [fontFamily]);
+
+  // Apply the font-size scale by adjusting the root font-size (scales all rem
+  // units across the sidebar / in-app UI). 1 = the default 16px.
+  useEffect(() => {
+    document.documentElement.style.fontSize = `${BASE_FONT_PX * fontScale}px`;
+  }, [fontScale]);
 
   // Calculate session stats (memoized to prevent 60+ calculations per minute)
   const calculateStats = useMemo(() => {
@@ -244,11 +249,12 @@ function App() {
     timeLimit,
     myUserId,
     queue,
-    setOverlayDebug,
+    undefined, // overlay status is no longer surfaced in the UI
     calculateStats,
     isPaused,
     videoOverlayEnabled, // pass the mode ('mini' or 'full')
-    fontFamily // selected font applied to the overlay canvas
+    fontFamily, // selected font applied to the overlay canvas
+    fontScale // selected font size applied to the overlay canvas
   );
 
   // When Zoom loads this webview inside the camera / immersive feed, render only
@@ -313,17 +319,6 @@ function App() {
         </div>
 
         <div className="center-panel">
-          {videoOverlayEnabled !== 'off' && (
-            <CollapsibleSection className="overlay-section" title="Overlay">
-              <p className="overlay-status-line">{overlayDebug}</p>
-              {queue.length === 0 && !currentSpeaker && (
-                <p className="overlay-hint-line">
-                  Overlay shows on your video; start a turn to display the timer.
-                </p>
-              )}
-            </CollapsibleSection>
-          )}
-
           <Timer
             isActive={!!currentSpeaker}
             timeLimit={timeLimit}
@@ -354,6 +349,8 @@ function App() {
             onTimeLimitChange={setTimeLimit}
             fontFamily={fontFamily}
             onFontChange={setFontFamily}
+            fontScale={fontScale}
+            onFontScaleChange={setFontScale}
           />
         </div>
 
