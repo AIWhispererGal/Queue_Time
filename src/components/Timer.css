@@ -3,7 +3,9 @@ html body #root .timer-container {
   background: white !important;
   border-radius: 0.25rem !important;
   box-shadow: 0 1px 3px rgba(0,0,0,0.1) !important;
-  padding: 1rem !important;
+  /* Match the 0.75rem padding of the other center-panel sections so the
+     collapse caret lines up with them (1rem left the caret indented). */
+  padding: 0.75rem !important;
   text-align: center !important;
 }
 
