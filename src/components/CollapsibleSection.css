@@ -5,6 +5,10 @@
   gap: 0.5rem;
   cursor: pointer;
   user-select: none;
+  /* Keep the caret/title left-aligned even inside centered containers
+     (e.g. .timer-container has text-align:center, which otherwise centered
+     the caret glyph in its box and added a gap before the title). */
+  text-align: left;
 }
 
 .collapsible-title {

@@ -97,8 +97,7 @@
   border-radius: 0.25rem;
   box-shadow: 0 1px 3px rgba(0,0,0,0.1);
   padding: 0.5rem;
-  max-height: calc(100vh - 4rem);
-  overflow-y: auto;
+  /* Panels size to content; the whole .main-layout scrolls as one region. */
 }
 
 .center-panel {

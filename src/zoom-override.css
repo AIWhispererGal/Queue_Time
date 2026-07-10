@@ -33,18 +33,21 @@ html body #root .app-header {
   min-height: 3rem !important;
 }
 
-/* Three column layout - CRITICAL */
+/* Three column layout - CRITICAL. The whole layout scrolls as one vertical
+   region (single scrollbar); the header above stays fixed. */
 html body #root .main-layout {
   display: grid !important;
   grid-template-columns: 1fr 1.5fr 1fr !important;
   gap: 0.75rem !important;
   padding: 0.75rem !important;
   flex: 1 !important;
-  overflow: hidden !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
   height: calc(100vh - 4rem) !important;
 }
 
-/* Panel styles with visual hierarchy */
+/* Panel styles with visual hierarchy. Panels size to their content and do NOT
+   scroll internally — the whole .main-layout scrolls instead. */
 html body #root .left-panel,
 html body #root .right-panel,
 html body #root .center-panel > * {
@@ -52,8 +55,7 @@ html body #root .center-panel > * {
   border-radius: 0.5rem !important;
   box-shadow: 0 2px 8px rgba(0,0,0,0.08) !important;
   padding: 0.75rem !important;
-  overflow-y: auto !important;
-  overflow-x: hidden !important;
+  overflow: visible !important;
 }
 
 /* Center panel special handling */
@@ -61,7 +63,7 @@ html body #root .center-panel {
   display: flex !important;
   flex-direction: column !important;
   gap: 0.75rem !important;
-  overflow: hidden !important;
+  overflow: visible !important;
 }
 
 /* Let the three grid columns shrink instead of forcing horizontal overflow
@@ -163,7 +165,10 @@ html body #root .timer-progress-bar {
 @media (max-width: 1024px) {
   html body #root .main-layout {
     grid-template-columns: 1fr !important;
-    grid-template-rows: auto 1fr auto !important;
+    /* Rows size to content so the sections stack at natural height and the
+       whole layout scrolls as one, instead of the middle row being stretched
+       and scrolling on its own. */
+    grid-template-rows: auto auto auto !important;
   }
 }
 
