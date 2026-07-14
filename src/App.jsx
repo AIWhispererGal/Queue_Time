@@ -15,6 +15,9 @@ import { TIMER_DEFAULTS } from './constants/timer';
 import { DEFAULT_FONT, FONT_SCALE, BASE_FONT_PX } from './constants/fonts';
 import './App.css';
 
+// localStorage key for host-added participants (persist across reloads).
+const MANUAL_PARTICIPANTS_KEY = 'queuetime.manualParticipants';
+
 function App() {
   // Zoom SDK state (extracted to custom hook)
   const {
@@ -23,6 +26,7 @@ function App() {
     myUserId,
     zoomSdkInstance,
     sdkError,
+    debugInfo,
     runningContext,
     handRaises,
     clearHandRaises
@@ -30,6 +34,18 @@ function App() {
 
   // App-specific state
   const [queue, setQueue] = useState([]);
+  // Manually-added participants live separately from the SDK roster so the SDK's
+  // delta merge and meeting-ended wipe can't clobber them, and are persisted to
+  // localStorage so they survive reloads / cases where the SDK never surfaces them.
+  const [manualParticipants, setManualParticipants] = useState(() => {
+    try {
+      const raw = localStorage.getItem(MANUAL_PARTICIPANTS_KEY);
+      const parsed = raw ? JSON.parse(raw) : [];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  });
   const [currentSpeaker, setCurrentSpeaker] = useState(null);
   const [speakerStats, setSpeakerStats] = useState({});
   const [timeLimit, setTimeLimit] = useState(TIMER_DEFAULTS.TIME_LIMIT);
@@ -64,6 +80,28 @@ function App() {
   useEffect(() => {
     document.documentElement.style.fontSize = `${BASE_FONT_PX * uiFontScale}px`;
   }, [uiFontScale]);
+
+  // Persist manually-added participants so they survive reloads.
+  useEffect(() => {
+    try {
+      localStorage.setItem(MANUAL_PARTICIPANTS_KEY, JSON.stringify(manualParticipants));
+    } catch {
+      // localStorage unavailable (restricted webview) — persistence is best-effort.
+    }
+  }, [manualParticipants]);
+
+  // The roster shown in the UI = SDK participants + any manual entries not already
+  // present in the SDK list (dedup by name, so someone the SDK later surfaces
+  // doesn't appear twice).
+  const allParticipants = useMemo(() => {
+    const sdkNames = new Set(
+      participants.map(p => (p.displayName || '').trim().toLowerCase())
+    );
+    const extras = manualParticipants.filter(
+      p => !sdkNames.has((p.displayName || '').trim().toLowerCase())
+    );
+    return [...participants, ...extras];
+  }, [participants, manualParticipants]);
 
   // Calculate session stats (memoized to prevent 60+ calculations per minute)
   const calculateStats = useMemo(() => {
@@ -152,6 +190,31 @@ function App() {
   }, [shouldClearStatsOnNext]);
 
   const removeFromQueue = useCallback((userId) => {
+    setQueue(prev => prev.filter(p => p.userId !== userId));
+  }, []);
+
+  // Add a host-entered participant to the persisted roster (not straight to the
+  // queue) — from there it behaves like any other participant and can be clicked
+  // into the queue. Dedup by name against existing manual entries.
+  const addManualParticipant = useCallback((name) => {
+    const displayName = (name || '').trim();
+    if (!displayName) return;
+    setManualParticipants(prev => {
+      if (prev.some(p => p.displayName.trim().toLowerCase() === displayName.toLowerCase())) {
+        return prev;
+      }
+      return [...prev, {
+        userId: `manual-${Date.now()}`,
+        displayName,
+        avatar: null,
+        role: 'participant',
+        isManual: true
+      }];
+    });
+  }, []);
+
+  const removeManualParticipant = useCallback((userId) => {
+    setManualParticipants(prev => prev.filter(p => p.userId !== userId));
     setQueue(prev => prev.filter(p => p.userId !== userId));
   }, []);
 
@@ -313,13 +376,18 @@ function App() {
       <div className="main-layout">
         <div className="left-panel">
           <ParticipantList
-            participants={participants}
+            participants={allParticipants}
             onAddToQueue={addToQueue}
+            onAddParticipant={addManualParticipant}
+            onRemoveParticipant={removeManualParticipant}
             speakerStats={speakerStats}
             currentSpeaker={currentSpeaker}
             queue={queue}
             handRaises={handRaises}
           />
+          {debugInfo && (
+            <div className="sdk-status" title="Zoom SDK status">{debugInfo}</div>
+          )}
         </div>
 
         <div className="center-panel">
@@ -368,7 +436,7 @@ function App() {
         <div className="right-panel">
           <Statistics
             speakerStats={speakerStats}
-            participants={participants}
+            participants={allParticipants}
             onReset={resetStats}
             currentSpeaker={currentSpeaker}
             timeRemaining={timeRemaining}

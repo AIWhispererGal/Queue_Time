@@ -3,7 +3,7 @@ import { formatTime } from '../utils/formatTime';
 import CollapsibleSection from './CollapsibleSection';
 import './ParticipantList.css';
 
-const ParticipantList = memo(function ParticipantList({ participants, onAddToQueue, speakerStats, currentSpeaker, queue, handRaises = [] }) {
+const ParticipantList = memo(function ParticipantList({ participants, onAddToQueue, onAddParticipant, onRemoveParticipant, speakerStats, currentSpeaker, queue, handRaises = [] }) {
   const [showManualAdd, setShowManualAdd] = useState(false);
   const [manualName, setManualName] = useState('');
 
@@ -23,14 +23,9 @@ const ParticipantList = memo(function ParticipantList({ participants, onAddToQue
 
   const handleManualAdd = () => {
     if (manualName.trim()) {
-      const manualParticipant = {
-        userId: `manual-${Date.now()}`,
-        displayName: manualName.trim(),
-        avatar: null,
-        role: 'participant',
-        isManual: true
-      };
-      onAddToQueue(manualParticipant);
+      // Add to the persisted participants list (not straight to the queue). From
+      // the list the host clicks the row to queue them, like any other participant.
+      onAddParticipant(manualName.trim());
       setManualName('');
       setShowManualAdd(false);
     }
@@ -123,6 +118,15 @@ const ParticipantList = memo(function ParticipantList({ participants, onAddToQue
                 {status === 'speaking' && <span className="status-badge speaking">Speaking</span>}
                 {status === 'queued' && <span className="status-badge queued">In Queue</span>}
                 {status === 'available' && <span className="status-badge available">+</span>}
+                {participant.isManual && onRemoveParticipant && (
+                  <button
+                    className="manual-remove-button"
+                    title="Remove manually-added participant"
+                    onClick={(e) => { e.stopPropagation(); onRemoveParticipant(participant.userId); }}
+                  >
+                    {'×'}
+                  </button>
+                )}
               </div>
             </div>
           );

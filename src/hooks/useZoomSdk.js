@@ -1,6 +1,22 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import zoomSdk from '@zoom/appssdk';
 
+// Normalize a raw Zoom participant object into our internal shape. Shared by the
+// initial roster fetch and the self-healing poll so both stay consistent.
+function formatParticipant(p, myUserId) {
+  const userId = p.participantUUID || p.participantId || p.userId || String(Math.random());
+  return {
+    userId,
+    displayName: p.displayName || p.screenName || p.userName || 'Unknown User',
+    avatar: p.avatar || null,
+    role: p.role || (p.isHost ? 'host' : 'participant'),
+    isCurrentUser: userId === myUserId,
+    // Zoom event roles are host | cohost | attendee
+    isPanelist: p.role === 'panelist' || p.role === 'host' ||
+      p.role === 'cohost' || p.role === 'coHost'
+  };
+}
+
 /**
  * Custom hook for Zoom SDK initialization and participant management
  * Extracts ~228 lines of SDK logic from App.jsx
@@ -17,6 +33,7 @@ function useZoomSdk() {
   const [handRaises, setHandRaises] = useState([]);
   const handRaisesRef = useRef([]);
   const myUserIdRef = useRef(null);
+  const rosterPollRef = useRef(null);
 
   const initializeZoomApp = useCallback(async () => {
     setDebugInfo('Starting SDK initialization...');
@@ -28,6 +45,9 @@ function useZoomSdk() {
           'getWebinarContext',
           'getRunningContext',
           'getUserContext',
+          'getMeetingParticipants',
+          'getWebinarParticipants',
+          'listParticipants',
           'onParticipantChange',
           'onMeeting',
           'onExpandApp',
@@ -144,8 +164,9 @@ function useZoomSdk() {
               : merged;
           });
         });
-      } catch {
-        // Could not register onParticipantChange
+      } catch (e) {
+        console.warn('onParticipantChange registration failed', e);
+        setDebugInfo('onParticipantChange failed: ' + (e?.message || e));
       }
 
       // Try to set up meeting event listener
@@ -209,42 +230,35 @@ function useZoomSdk() {
           // Webinar context: Try getWebinarParticipants
           try {
             participantData = await zoomSdk.getWebinarParticipants();
-          } catch {
-            // getWebinarParticipants failed
+          } catch (e) {
+            console.warn('getWebinarParticipants failed', e);
+            setDebugInfo('getWebinarParticipants failed: ' + (e?.message || e));
           }
         } else {
           // Meeting context: Try getMeetingParticipants
           try {
             participantData = await zoomSdk.getMeetingParticipants();
-          } catch {
-            // getMeetingParticipants failed (expected)
+          } catch (e) {
+            console.warn('getMeetingParticipants failed', e);
+            setDebugInfo('getMeetingParticipants failed: ' + (e?.message || e));
           }
 
           // Fallback: Try listParticipants (older API, works in both)
           if (!participantData) {
             try {
               participantData = await zoomSdk.listParticipants();
-            } catch {
-              // listParticipants failed
+            } catch (e) {
+              console.warn('listParticipants failed', e);
+              setDebugInfo('listParticipants failed: ' + (e?.message || e));
             }
           }
         }
 
         // Process any participant data we got
         if (participantData && participantData.participants) {
-          const formattedParticipants = participantData.participants.map(p => {
-            const userId = p.participantUUID || p.participantId || p.userId || String(Math.random());
-            return {
-              userId,
-              displayName: p.displayName || p.screenName || p.userName || 'Unknown User',
-              avatar: p.avatar || null,
-              role: p.role || (p.isHost ? 'host' : 'participant'),
-              isCurrentUser: userId === myUserIdRef.current,
-              // Zoom event roles are host | cohost | attendee
-              isPanelist: p.role === 'panelist' || p.role === 'host' ||
-                p.role === 'cohost' || p.role === 'coHost'
-            };
-          });
+          const formattedParticipants = participantData.participants.map(
+            p => formatParticipant(p, myUserIdRef.current)
+          );
 
           // For webinars, only show panelists (speakers) - filter out attendees
           const visibleParticipants = detectedContextType === 'webinar'
@@ -254,12 +268,36 @@ function useZoomSdk() {
           setParticipants(visibleParticipants);
           const contextLabel = detectedContextType === 'webinar' ? 'panelists' : 'participants';
           setDebugInfo(`Loaded ${visibleParticipants.length} ${contextLabel}`);
+
+          // Self-healing: the initial fetch worked, so the participant capability
+          // is granted. Periodically re-fetch the full roster to catch any missed
+          // join/leave deltas (onParticipantChange only delivers changes). Gated on
+          // initial success so we never spam a failing/unapproved call.
+          if (!rosterPollRef.current) {
+            rosterPollRef.current = setInterval(async () => {
+              let poll = null;
+              try {
+                poll = detectedContextType === 'webinar'
+                  ? await zoomSdk.getWebinarParticipants()
+                  : await zoomSdk.getMeetingParticipants();
+              } catch {
+                try { poll = await zoomSdk.listParticipants(); } catch { poll = null; }
+              }
+              // Keep the last-known roster on a transient poll failure.
+              if (!poll || !poll.participants) return;
+              const formatted = poll.participants.map(p => formatParticipant(p, myUserIdRef.current));
+              setParticipants(detectedContextType === 'webinar'
+                ? formatted.filter(p => p.isPanelist)
+                : formatted);
+            }, 5000);
+          }
         } else {
           setDebugInfo('Waiting for participants to join (event-based mode)');
           setParticipants([]); // Start with empty, will populate via events
         }
 
-      } catch {
+      } catch (e) {
+        console.warn('Initial participant fetch failed', e);
         setDebugInfo('Event mode active - participants will appear as they join/leave');
       }
 
@@ -327,7 +365,13 @@ function useZoomSdk() {
       initializeZoomApp();
     }, 1000);
 
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      if (rosterPollRef.current) {
+        clearInterval(rosterPollRef.current);
+        rosterPollRef.current = null;
+      }
+    };
   }, [initializeZoomApp]);
 
   const clearHandRaises = useCallback(() => {
