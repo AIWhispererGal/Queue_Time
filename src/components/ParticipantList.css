@@ -16,8 +16,13 @@ html body #root .participant-list {
   margin-bottom: 0.75rem;
 }
 
+.participant-actions {
+  display: flex;
+  gap: 0.25rem;
+}
+
 .manual-add-button {
-  width: 100%;
+  flex: 1;
   padding: 0.5rem;
   background: #2196F3;
   color: white;
@@ -26,6 +31,22 @@ html body #root .participant-list {
   cursor: pointer;
   font-size: 0.875rem;
   font-weight: 500;
+}
+
+.roster-refresh-button {
+  padding: 0.5rem 0.625rem;
+  background: #eceff1;
+  color: #37474f;
+  border: 1px solid #cfd8dc;
+  border-radius: 0.25rem;
+  cursor: pointer;
+  font-size: 0.813rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.roster-refresh-button:hover {
+  background: #cfd8dc;
 }
 
 .manual-add-button:hover {

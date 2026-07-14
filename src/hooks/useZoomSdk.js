@@ -34,6 +34,61 @@ function useZoomSdk() {
   const handRaisesRef = useRef([]);
   const myUserIdRef = useRef(null);
   const rosterPollRef = useRef(null);
+  // Detected context ('meeting' | 'webinar' | 'unknown') and a stable ref to the
+  // latest refreshRoster — both read from inside long-lived SDK event closures
+  // that would otherwise capture stale state.
+  const contextTypeRef = useRef(null);
+  const refreshRosterRef = useRef(null);
+
+  // Fetch the full roster via the role-gated enumeration APIs. These require the
+  // caller to be host/co-host (error 80003 require_meeting_owner_role otherwise),
+  // so this is best-effort. Reused by: initial load, self-promotion to co-host,
+  // the manual Refresh button, and the self-healing poll. `quiet` suppresses
+  // status/state changes so a transient poll failure keeps the last-known roster.
+  const refreshRoster = useCallback(async ({ quiet = false } = {}) => {
+    const ctx = contextTypeRef.current;
+    let data = null;
+    try {
+      if (ctx === 'webinar') {
+        data = await zoomSdk.getWebinarParticipants();
+      } else {
+        try {
+          data = await zoomSdk.getMeetingParticipants();
+        } catch (e) {
+          if (!quiet) console.warn('getMeetingParticipants failed', e);
+        }
+        if (!data) data = await zoomSdk.listParticipants();
+      }
+    } catch (e) {
+      if (!quiet) {
+        console.warn('refreshRoster failed', e);
+        setDebugInfo('Roster unavailable (host/co-host required): ' + (e?.message || e));
+      }
+      return false;
+    }
+
+    if (!data || !data.participants) {
+      if (!quiet) setDebugInfo('Waiting for participants to join (event-based mode)');
+      return false;
+    }
+
+    const formatted = data.participants.map(p => formatParticipant(p, myUserIdRef.current));
+    const visible = ctx === 'webinar' ? formatted.filter(p => p.isPanelist) : formatted;
+    setParticipants(visible);
+    setDebugInfo(`Loaded ${visible.length} ${ctx === 'webinar' ? 'panelists' : 'participants'}`);
+
+    // The fetch worked, so the enumeration APIs are available to us now — start
+    // the self-healing poll (idempotent) to catch any missed join/leave deltas.
+    if (!rosterPollRef.current) {
+      rosterPollRef.current = setInterval(() => {
+        refreshRosterRef.current?.({ quiet: true });
+      }, 5000);
+    }
+    return true;
+  }, []);
+
+  // Keep the ref pointing at the latest refreshRoster for use inside SDK closures.
+  refreshRosterRef.current = refreshRoster;
 
   const initializeZoomApp = useCallback(async () => {
     setDebugInfo('Starting SDK initialization...');
@@ -101,6 +156,10 @@ function useZoomSdk() {
         // Could not get running context
       }
 
+      // Expose the detected context to the long-lived event closures and to
+      // refreshRoster (which run after this function returns).
+      contextTypeRef.current = detectedContextType;
+
       // Get context info (meeting or webinar) based on detected context type
       try {
         if (detectedContextType === 'webinar') {
@@ -163,6 +222,18 @@ function useZoomSdk() {
               ? merged.filter(p => p.isPanelist)
               : merged;
           });
+
+          // If WE were just promoted to host/co-host, the role-gated roster APIs
+          // become available — fetch the full roster (and start the poll) now, so
+          // a non-host who opened the app to an empty list gets it populated
+          // without a reload. Only until the first successful fetch (poll running).
+          if (!rosterPollRef.current) {
+            const me = event.participants.find(
+              p => (p.participantUUID || p.participantId || p.userId) === myUserIdRef.current
+            );
+            const meIsOwner = me && (me.role === 'host' || me.role === 'cohost' || me.role === 'coHost');
+            if (meIsOwner) refreshRosterRef.current?.();
+          }
         });
       } catch (e) {
         console.warn('onParticipantChange registration failed', e);
@@ -222,84 +293,11 @@ function useZoomSdk() {
         // onRemoveFeedbackReaction not available
       }
 
-      // Try to get initial participants - but don't fail if we can't
-      try {
-        let participantData = null;
-
-        if (detectedContextType === 'webinar') {
-          // Webinar context: Try getWebinarParticipants
-          try {
-            participantData = await zoomSdk.getWebinarParticipants();
-          } catch (e) {
-            console.warn('getWebinarParticipants failed', e);
-            setDebugInfo('getWebinarParticipants failed: ' + (e?.message || e));
-          }
-        } else {
-          // Meeting context: Try getMeetingParticipants
-          try {
-            participantData = await zoomSdk.getMeetingParticipants();
-          } catch (e) {
-            console.warn('getMeetingParticipants failed', e);
-            setDebugInfo('getMeetingParticipants failed: ' + (e?.message || e));
-          }
-
-          // Fallback: Try listParticipants (older API, works in both)
-          if (!participantData) {
-            try {
-              participantData = await zoomSdk.listParticipants();
-            } catch (e) {
-              console.warn('listParticipants failed', e);
-              setDebugInfo('listParticipants failed: ' + (e?.message || e));
-            }
-          }
-        }
-
-        // Process any participant data we got
-        if (participantData && participantData.participants) {
-          const formattedParticipants = participantData.participants.map(
-            p => formatParticipant(p, myUserIdRef.current)
-          );
-
-          // For webinars, only show panelists (speakers) - filter out attendees
-          const visibleParticipants = detectedContextType === 'webinar'
-            ? formattedParticipants.filter(p => p.isPanelist)
-            : formattedParticipants;
-
-          setParticipants(visibleParticipants);
-          const contextLabel = detectedContextType === 'webinar' ? 'panelists' : 'participants';
-          setDebugInfo(`Loaded ${visibleParticipants.length} ${contextLabel}`);
-
-          // Self-healing: the initial fetch worked, so the participant capability
-          // is granted. Periodically re-fetch the full roster to catch any missed
-          // join/leave deltas (onParticipantChange only delivers changes). Gated on
-          // initial success so we never spam a failing/unapproved call.
-          if (!rosterPollRef.current) {
-            rosterPollRef.current = setInterval(async () => {
-              let poll = null;
-              try {
-                poll = detectedContextType === 'webinar'
-                  ? await zoomSdk.getWebinarParticipants()
-                  : await zoomSdk.getMeetingParticipants();
-              } catch {
-                try { poll = await zoomSdk.listParticipants(); } catch { poll = null; }
-              }
-              // Keep the last-known roster on a transient poll failure.
-              if (!poll || !poll.participants) return;
-              const formatted = poll.participants.map(p => formatParticipant(p, myUserIdRef.current));
-              setParticipants(detectedContextType === 'webinar'
-                ? formatted.filter(p => p.isPanelist)
-                : formatted);
-            }, 5000);
-          }
-        } else {
-          setDebugInfo('Waiting for participants to join (event-based mode)');
-          setParticipants([]); // Start with empty, will populate via events
-        }
-
-      } catch (e) {
-        console.warn('Initial participant fetch failed', e);
-        setDebugInfo('Event mode active - participants will appear as they join/leave');
-      }
+      // Try to get the initial roster (best-effort — needs host/co-host). On
+      // success this also starts the self-healing poll. If it fails (e.g. we're a
+      // plain attendee), the list stays empty and fills via onParticipantChange
+      // deltas; it will auto-populate if we're later promoted to co-host.
+      await refreshRoster();
 
       // Store the SDK instance for video overlay
       setZoomSdkInstance(zoomSdk);
@@ -323,7 +321,8 @@ function useZoomSdk() {
     }
     // Runs once on mount — myUserId is read via myUserIdRef to avoid re-initializing
     // the SDK (which would re-register every event listener) when the user id resolves.
-  }, []);
+    // refreshRoster is stable (useCallback([])).
+  }, [refreshRoster]);
 
   // Initialize SDK on mount
   useEffect(() => {
@@ -390,7 +389,8 @@ function useZoomSdk() {
     contextType,
     runningContext,
     handRaises,
-    clearHandRaises
+    clearHandRaises,
+    refreshRoster
   };
 }
 

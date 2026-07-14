@@ -3,7 +3,7 @@ import { formatTime } from '../utils/formatTime';
 import CollapsibleSection from './CollapsibleSection';
 import './ParticipantList.css';
 
-const ParticipantList = memo(function ParticipantList({ participants, onAddToQueue, onAddParticipant, onRemoveParticipant, speakerStats, currentSpeaker, queue, handRaises = [] }) {
+const ParticipantList = memo(function ParticipantList({ participants, onAddToQueue, onAddParticipant, onRemoveParticipant, onRefreshRoster, speakerStats, currentSpeaker, queue, handRaises = [] }) {
   const [showManualAdd, setShowManualAdd] = useState(false);
   const [manualName, setManualName] = useState('');
 
@@ -36,12 +36,23 @@ const ParticipantList = memo(function ParticipantList({ participants, onAddToQue
       {/* Manual Add Button/Input */}
       <div className="manual-add-container">
         {!showManualAdd ? (
-          <button
-            className="manual-add-button"
-            onClick={() => setShowManualAdd(true)}
-          >
-            + Add Participant Manually
-          </button>
+          <div className="participant-actions">
+            <button
+              className="manual-add-button"
+              onClick={() => setShowManualAdd(true)}
+            >
+              + Add Participant Manually
+            </button>
+            {onRefreshRoster && (
+              <button
+                className="roster-refresh-button"
+                title="Re-fetch the participant list from Zoom (needs host/co-host)"
+                onClick={() => onRefreshRoster()}
+              >
+                {'↻'} Refresh
+              </button>
+            )}
+          </div>
         ) : (
           <div className="manual-add-form">
             <input

@@ -29,7 +29,8 @@ function App() {
     debugInfo,
     runningContext,
     handRaises,
-    clearHandRaises
+    clearHandRaises,
+    refreshRoster
   } = useZoomSdk();
 
   // App-specific state
@@ -380,6 +381,7 @@ function App() {
             onAddToQueue={addToQueue}
             onAddParticipant={addManualParticipant}
             onRemoveParticipant={removeManualParticipant}
+            onRefreshRoster={refreshRoster}
             speakerStats={speakerStats}
             currentSpeaker={currentSpeaker}
             queue={queue}

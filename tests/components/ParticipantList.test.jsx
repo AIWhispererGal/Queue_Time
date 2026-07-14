@@ -46,6 +46,19 @@ describe('ParticipantList', () => {
     expect(onRemoveParticipant).toHaveBeenCalledWith('manual-99');
   });
 
+  it('renders a Refresh button that calls onRefreshRoster', () => {
+    const onRefreshRoster = vi.fn();
+    const { getByText, rerender } = render(
+      <ParticipantList {...baseProps} onRefreshRoster={onRefreshRoster} />
+    );
+    fireEvent.click(getByText(/Refresh/));
+    expect(onRefreshRoster).toHaveBeenCalled();
+
+    // Hidden when no handler is provided.
+    rerender(<ParticipantList {...baseProps} onRefreshRoster={undefined} />);
+    expect(() => getByText(/Refresh/)).toThrow();
+  });
+
   it('clicking an available participant adds it to the queue', () => {
     const onAddToQueue = vi.fn();
     const participants = [{ userId: '1', displayName: 'Alice', role: 'participant' }];
