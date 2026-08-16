@@ -234,6 +234,9 @@ function App() {
       if (prev.length === 0) return prev;
       const speaker = prev[0];
       setCurrentSpeaker(speaker);
+      // Start every turn with the full time limit — a previous turn that ran to
+      // expiry leaves timeRemaining at 0, which would end this turn instantly.
+      setTimeRemaining(timeLimit);
       // Initialize stats if needed
       setSpeakerStats(stats => {
         if (stats[speaker.userId]) return stats;
@@ -248,7 +251,7 @@ function App() {
       });
       return prev.slice(1);
     });
-  }, []);
+  }, [timeLimit]);
 
   const onTimerComplete = useCallback((timeSpoken) => {
     setCurrentSpeaker(speaker => {
